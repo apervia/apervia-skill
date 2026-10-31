@@ -1,0 +1,14 @@
+{
+  "name": "apervia",
+  "description": "The Apervia plugin for Claude Code: deploy and operate an app on Apervia.",
+  "owner": {
+    "name": "The Curve Consulting"
+  },
+  "plugins": [
+    {
+      "name": "apervia",
+      "source": "./plugins/apervia",
+      "description": "Prepare an app, deploy it to Apervia, and operate it, with the apervia CLI."
+    }
+  ]
+}
