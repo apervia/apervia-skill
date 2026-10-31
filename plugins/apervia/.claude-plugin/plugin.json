@@ -1,0 +1,10 @@
+{
+  "name": "apervia",
+  "displayName": "Apervia",
+  "version": "0.1.0",
+  "description": "Prepare an app, deploy it to Apervia, and operate it, with the apervia CLI.",
+  "author": {
+    "name": "The Curve Consulting"
+  },
+  "keywords": ["apervia", "deploy", "hosting"]
+}
