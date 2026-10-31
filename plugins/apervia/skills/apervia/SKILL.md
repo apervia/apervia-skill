@@ -64,10 +64,11 @@ Do the steps in order. Tell the person in one line what each step does.
 
 ### 1. Check the CLI and the sign-in
 
-1. Run `APERVIA_CLIENT=claude-skill apervia version`. If the command is not found, tell the person to
-   install the CLI, and stop. If `APERVIA_CLIENT=claude-skill apervia check
-   --rules --json` fails because the command is unknown, the CLI is too old:
-   ask the person to run `! apervia cli update`.
+1. Run `APERVIA_CLIENT=claude-skill apervia version`. If the command is not
+   found, tell the person to install the CLI, and stop. The skill needs
+   version `2026.10.31.1` or later. Compare the four numbers in turn: year,
+   month, day, then the release of that day. If it is older, ask the person to run `! apervia cli update`, and
+   run the version again.
 2. Run `APERVIA_CLIENT=claude-skill apervia auth status --json`. If the
    person is not signed in, ask for the address of their tenant (for example
    `acme.apervia.example.com`), and ask them to run

@@ -19,8 +19,8 @@ password or a secret value: you type each secret into the CLI yourself.
 ## What you need
 
 - [Claude Code](https://claude.com/claude-code).
-- The `apervia` CLI, signed in to your tenant. Run `apervia cli update` to get
-  the newest version.
+- The `apervia` CLI, version 2026.10.31.1 or later, signed in to your
+  tenant. Run `apervia cli update` to get the newest version.
 - For an app that Apervia builds from source: a GitHub account.
 
 ## Install
