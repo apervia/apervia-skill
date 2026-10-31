@@ -21,3 +21,17 @@ jobs:
         run: |
           npx --yes @anthropic-ai/claude-code plugin validate .
           npx --yes @anthropic-ai/claude-code plugin validate plugins/apervia
+      - name: The evaluation set is well formed
+        run: |
+          python3 -m py_compile evals/run.py
+          python3 - <<'PY'
+          import json, pathlib
+          spec = json.loads(pathlib.Path("evals/cases.json").read_text())
+          ids = [c["id"] for c in spec["cases"]]
+          assert len(ids) == len(set(ids)), "a case id is not unique"
+          for c in spec["cases"]:
+              assert (pathlib.Path("evals/fixtures") / c["fixture"]).is_dir(), c["id"] + ": no fixture"
+          hits = [str(p) for p in pathlib.Path("evals/fixtures").rglob("*") if p.is_file() and spec["canary"] in p.read_text(errors="ignore")]
+          assert not hits, "a fixture holds the canary: " + ", ".join(hits)
+          print(len(ids), "cases")
+          PY

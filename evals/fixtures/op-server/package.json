@@ -1,0 +1,1 @@
+{"name":"orders","private":true,"scripts":{"start":"node server.js"},"dependencies":{"express":"^4.19.2","express-session":"^1.18.0","stripe":"^16.0.0"}}

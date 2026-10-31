@@ -1,0 +1,1 @@
+{"name":"recipes","private":true,"type":"module","scripts":{"build":"astro build"},"dependencies":{"astro":"^4.15.0"}}
