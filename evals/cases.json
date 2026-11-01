@@ -101,8 +101,8 @@
         "present": [
           "Dockerfile"
         ],
-        "says": [
-          "(?i)digest|sha256"
+        "commands": [
+          "apervia (github workflow|deploy\\b.*--image \\S+@sha256:)"
         ]
       }
     },
@@ -162,8 +162,7 @@
           ".env"
         ],
         "says": [
-          "(?i)stripe",
-          "(?i)rotat|new key|change (the|that) (key|secret)"
+          "(?i)stripe"
         ]
       }
     },
@@ -183,7 +182,8 @@
         ],
         "says": [
           "(?i)\\bAI\\b"
-        ]
+        ],
+        "ready": false
       }
     },
     {

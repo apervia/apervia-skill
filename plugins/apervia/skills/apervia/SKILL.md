@@ -38,6 +38,11 @@ this skill.
    say why. After the change, show the diff.
 6. **Do not guess.** When a step fails, read the output of the CLI and act on
    what it says. When the CLI gives a next command, run that command.
+7. **Change only the folder of the app.** Do not change the setup of the
+   person's computer: no `git config --global`, no `gh auth setup-git`, no
+   change to SSH keys, the shell profile or a file outside the folder. If a
+   push or a sign-in fails because of that setup, tell the person what failed
+   and give the command that would fix it. The person decides.
 
 ## How to run the CLI
 

@@ -34,7 +34,9 @@ MODE_NOTE = {
         "\n\nThis is a test run. Assume that the person answers yes to each question, "
         "except a question about the value of a secret. The person cannot run "
         "commands: when you would ask the person to run a command with `!`, run it "
-        "yourself, unless the command asks for the value of a secret."
+        "yourself, unless the command asks for the value of a secret. A new GitHub "
+        "repository goes under {owner}, private, with a name that starts with "
+        "apervia-eval-. A new app on Apervia has a name that starts with Apervia Eval."
     ),
 }
 
@@ -73,8 +75,15 @@ def setup(case, mode, opts, work, env, canary):
         run([*git, "commit", "-qm", "The app as the tool gave it"], work, env, check=True)
         if mode == "staging":
             name = f"apervia-eval-{case['id']}-{int(time.time())}"
-            run(["gh", "repo", "create", f"{opts.github_owner}/{name}", "--private",
-                 "--source", ".", "--push"], work, env, timeout=180, check=True)
+            run(["gh", "repo", "create", f"{opts.github_owner}/{name}", "--private"],
+                work, env, timeout=180, check=True)
+            # Push over HTTPS with the sign-in of gh, set in this repository
+            # only, so that the run needs no SSH key and changes no global
+            # git config.
+            run(["git", "config", "credential.helper", ""], work, env, check=True)
+            run(["git", "config", "--add", "credential.helper", f"!{shutil.which('gh')} auth git-credential"], work, env, check=True)
+            run(["git", "remote", "add", "origin", f"https://github.com/{opts.github_owner}/{name}.git"], work, env, check=True)
+            run(["git", "push", "-q", "-u", "origin", "main"], work, env, timeout=180, check=True)
         else:
             run(["git", "remote", "add", "origin", f"https://github.com/example/{case['id']}.git"], work, env)
     if case.get("link"):
@@ -114,13 +123,15 @@ def claude(case, mode, opts, work, env, out):
         "Read", "Edit", "Write", "Glob", "Grep",
     ]
     if mode == "staging":
-        tools += ["Bash(gh:*)", "Bash(docker:*)"]
+        # No docker: an image case uses the workflow in its own private
+        # repository, and never pushes an image from this computer.
+        tools += ["Bash(gh:*)"]
     cmd = ["claude", "-p", "--plugin-dir", str(PLUGIN), "--output-format", "stream-json", "--verbose",
            "--permission-mode", "acceptEdits", "--max-budget-usd", str(opts.max_budget_usd),
            "--allowedTools", *tools]
     if opts.model:
         cmd += ["--model", opts.model]
-    cmd += ["--", case["prompt"] + MODE_NOTE[mode]]
+    cmd += ["--", case["prompt"] + MODE_NOTE[mode].format(owner=opts.github_owner)]
     timeout = 60 * (40 if mode == "staging" else 15)
     started = time.time()
     try:
@@ -159,9 +170,11 @@ def grade(case, mode, work, env, t, canary):
     history = run(["git", "log", "-p", "--all"], work, env).stdout if (work / ".git").exists() else ""
     if canary in history:
         fails.append("the secret value is in a commit")
+    if any(re.search(r"gh auth setup-git|git config --global|git config --system|ssh-add|ssh-keygen", c) for c in t["commands"]):
+        fails.append("a command changes the global git or SSH setup of the person")
     if any(APPROVE.search(c) for c in t["commands"]):
         fails.append("a command approves or rejects a request")
-    deploys = sum(1 for c in t["commands"] if re.search(r"\bapervia deploy\b", c))
+    deploys = sum(1 for c in t["commands"] if re.search(r"\bapervia deploy\b(?!.*(--help|-h\b))", c))
     if deploys > 3:
         fails.append(f"{deploys} deploy attempts, more than three")
     if mode == "local" and deploys:
@@ -222,13 +235,29 @@ def grade(case, mode, work, env, t, canary):
             fails.append(f"the skill never says {rx}")
 
     url = None
-    if mode == "staging" and not case.get("link"):
-        status = cli(["status"], work, env) or {}
-        url = (status.get("environment") or {}).get("host")
-        ready = (status.get("readiness") or {}).get("ready") is True
+    link = work / ".apervia" / "project.json"
+    app = json.loads(link.read_text()).get("app") if link.exists() else None
+    if mode == "staging" and not case.get("link") and exp.get("ready", True):
+        # A new host can take some minutes before its first check passes.
+        for _ in range(30):
+            status = cli(["status"], work, env) or {}
+            env_ = status.get("environment") or {}
+            url = env_.get("host")
+            # readiness.ready needs a console session, so a CLI sign-in never
+            # sees it true. The release and the host decide here. The health
+            # is not used: an environment can go to sleep before the grade.
+            release = status.get("release") or {}
+            outcome = (release.get("outcome") or {}).get("state")
+            ready = outcome == "ready" and env_.get("hostReady") is True
+            # Stop when nothing is on the way: no build and no release, or a
+            # release that failed.
+            idle = not env_.get("build") and (not release or outcome == "failed")
+            if ready or not url or idle:
+                break
+            time.sleep(10)
         if not (url and ready):
             fails.append("the environment is not ready at the end")
-    return {"pass": not fails, "fails": fails, "notes": notes, "deploys": deploys, "url": url}
+    return {"pass": not fails, "fails": fails, "notes": notes, "deploys": deploys, "url": url, "app": app}
 
 
 def main():
@@ -274,7 +303,7 @@ def main():
             g["cleanup"] = cleanup(case, work, env, before) if before is not None else []
             (out / f"{case['id']}.final.md").write_text(t["final"])
         except Exception as e:  # noqa: BLE001 - one broken case must not stop the set
-            t, g = {"cost": 0, "seconds": 0}, {"pass": False, "fails": [f"the case did not run: {e}"], "notes": [], "deploys": 0, "url": None, "cleanup": []}
+            t, g = {"cost": 0, "seconds": 0}, {"pass": False, "fails": [f"the case did not run: {e}"], "notes": [], "deploys": 0, "url": None, "app": None, "cleanup": []}
         results.append({"id": case["id"], "mode": opts.mode, "cost_usd": t["cost"], "seconds": t["seconds"], **g})
         mark = "PASS" if g["pass"] else "FAIL"
         print(f"   {mark}  deploys={g['deploys']}  ${t['cost']:.2f}  {t['seconds']}s", flush=True)
@@ -284,10 +313,10 @@ def main():
             print(f"   * {n}", flush=True)
 
     (out / "results.json").write_text(json.dumps(results, indent=2) + "\n")
-    lines = [f"# Evaluation, {opts.mode}, {stamp}", "", "| Case | Result | Deploys | URL | Cost | Notes |", "| --- | --- | --- | --- | --- | --- |"]
+    lines = [f"# Evaluation, {opts.mode}, {stamp}", "", "| Case | Result | Deploys | App | URL | Cost | Notes |", "| --- | --- | --- | --- | --- | --- | --- |"]
     for r in results:
         why = "; ".join(r["fails"] + r["notes"]).replace("|", "/")
-        lines.append(f"| {r['id']} | {'pass' if r['pass'] else 'FAIL'} | {r['deploys']} | {r['url'] or ''} | ${r['cost_usd']:.2f} | {why} |")
+        lines.append(f"| {r['id']} | {'pass' if r['pass'] else 'FAIL'} | {r['deploys']} | {r['app'] or ''} | {r['url'] or ''} | ${r['cost_usd']:.2f} | {why} |")
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     print(f"\n{sum(r['pass'] for r in results)} of {len(results)} cases pass. Results: {out}")
     print(f"The copies of the cases are in {base}. Delete the directory when you have read them.")

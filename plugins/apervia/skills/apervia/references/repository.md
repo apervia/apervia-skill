@@ -62,3 +62,17 @@ file: put new values on Apervia instead.
 Run `! APERVIA_CLIENT=claude-skill apervia github connect` (the person runs
 it). The CLI gives Apervia access to the repository on GitHub, in the
 browser, and connects it to the environment.
+
+## When a push fails
+
+Read the error. Do not change the git or SSH setup of the computer to make
+it work (rule 7 in [SKILL.md](../SKILL.md)).
+
+- `Permission denied (publickey)` or a failed SSH signature: the SSH key does
+  not work now. If `gh auth status` shows a sign-in, a push over HTTPS for
+  this one command works with no change to the setup:
+  `git -c credential.helper='!gh auth git-credential' push https://github.com/<owner>/<repo>.git <branch>`.
+  Tell the person that you did this, and why.
+- `Authentication failed` over HTTPS: ask the person to run `! gh auth login`.
+- `rejected` (non-fast-forward): somebody pushed first. Run `git pull --rebase`,
+  show what changed, and push again.
