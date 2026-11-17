@@ -28,7 +28,7 @@ password or a secret value: you type each secret into the CLI yourself.
 In Claude Code:
 
 ```
-/plugin marketplace add the-curve-consulting/apervia-skill
+/plugin marketplace add apervia/apervia-skill
 /plugin install apervia@apervia
 ```
 
