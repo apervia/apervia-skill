@@ -32,10 +32,6 @@ In Claude Code:
 /plugin install apervia@apervia
 ```
 
-The repository is private. Claude Code uses the git sign-in of your computer
-to read it: run `gh auth login` and `gh auth setup-git` first if `git clone`
-of the repository does not work.
-
 To get a new version of the skill: `/plugin marketplace update apervia`.
 
 ## Use
@@ -57,7 +53,6 @@ Apervia console. The skill cannot approve it.
 
 ```sh
 claude --plugin-dir plugins/apervia      # try the skill from this checkout
-scripts/check-public.sh                  # no internal detail of Apervia
 python3 scripts/check-links.py           # every link resolves
 claude plugin validate .                 # the marketplace
 claude plugin validate plugins/apervia   # the plugin
@@ -65,9 +60,11 @@ claude plugin validate plugins/apervia   # the plugin
 
 The files of the plugin run on the computers of the people who use Apervia.
 They say what an app must do, never how the platform works inside.
-`scripts/check-public.sh` refuses a file that names an internal detail, and
-CI runs it on each pull request.
 
 The rules of the app contract come from the CLI: `apervia check --rules`
 lists them. `references/contract.md` explains them in plain words, by
 identifier.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

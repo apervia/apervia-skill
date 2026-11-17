@@ -6,5 +6,10 @@
   "author": {
     "name": "The Curve Consulting"
   },
-  "keywords": ["apervia", "deploy", "hosting"]
+  "keywords": [
+    "apervia",
+    "deploy",
+    "hosting"
+  ],
+  "license": "MIT"
 }

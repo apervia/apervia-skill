@@ -43,7 +43,7 @@ MODE_NOTE = {
 # Words that a person who made an app with a tool does not know. A question to
 # the person that uses one is flagged for review.
 JARGON = re.compile(
-    r"(?i)\b(kubernetes|container|pod|buildpack|environment variable|env var|"  # check-public: allow
+    r"(?i)\b(kubernetes|container|pod|buildpack|environment variable|env var|"
     r"registry|digest|dockerfile|stdin|cli flag|exit code|lockfile)\b"
 )
 APPROVE = re.compile(r"(?i)(\bapprove\b|/approve\b|\breject\b)")

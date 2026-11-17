@@ -13,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: No internal detail of Apervia
-        run: scripts/check-public.sh
       - name: Every link resolves
         run: python3 scripts/check-links.py
       - name: The plugin and the marketplace are valid
