@@ -34,7 +34,10 @@ In Claude Code:
 /plugin install apervia@apervia
 ```
 
-To get a new version of the skill: `/plugin marketplace update apervia`.
+Claude Code does not update this marketplace by itself. To get a new version
+of the skill, run `/plugin marketplace update apervia`. To get each new
+version with no command, open `/plugin`, choose the `apervia` marketplace and
+turn on auto-update.
 
 ## Use
 
