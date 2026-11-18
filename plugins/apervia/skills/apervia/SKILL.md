@@ -70,7 +70,13 @@ Do the steps in order. Tell the person in one line what each step does.
 ### 1. Check the CLI and the sign-in
 
 1. Run `APERVIA_CLIENT=claude-skill apervia version`. If the command is not
-   found, tell the person to install the CLI, and stop. The skill needs
+   found, ask the person to install the CLI. The install needs no sign-in:
+   - macOS or Linux: `! curl -fsSL https://downloads.apervia.ai/cli/install.sh | sh`
+   - Windows, in PowerShell: `irm https://downloads.apervia.ai/cli/install.ps1 | iex`
+
+   Then run the version again. If the command is still not found, tell the
+   person to open a new terminal, because the installer can add a folder to
+   the `PATH`, and stop. The skill needs
    version `2026.10.31.1` or later. Compare the four numbers in turn: year,
    month, day, then the release of that day. If it is older, ask the person to run `! apervia cli update`, and
    run the version again.
