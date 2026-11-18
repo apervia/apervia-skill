@@ -20,7 +20,9 @@ password or a secret value: you type each secret into the CLI yourself.
 
 - [Claude Code](https://claude.com/claude-code).
 - The `apervia` CLI, version 2026.10.31.1 or later, signed in to your
-  tenant. Run `apervia cli update` to get the newest version.
+  tenant. Run `apervia cli update` to get the newest version. To install it:
+  - macOS or Linux: `curl -fsSL https://downloads.apervia.ai/cli/install.sh | sh`
+  - Windows, in PowerShell: `irm https://downloads.apervia.ai/cli/install.ps1 | iex`
 - For an app that Apervia builds from source: a GitHub account.
 
 ## Install
