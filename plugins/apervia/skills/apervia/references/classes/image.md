@@ -50,3 +50,9 @@ To deploy from GitHub Actions on each push, run
 `APERVIA_CLIENT=claude-skill apervia github workflow`. It writes a workflow
 file and asks the platform to trust it. Show the file to the developer before
 the commit.
+
+Apervia gives the file, so it is the file that the console shows, on the
+newest release of the deploy action. Do not write the workflow by hand, and
+do not change the release in the `uses:` line. If the command does not know
+the route, or names an older release than the console, run
+`apervia cli update` and run it again.
