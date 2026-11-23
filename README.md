@@ -26,8 +26,10 @@ password or a secret value: you type each secret into the CLI yourself.
   - Windows, in PowerShell: `irm https://downloads.apervia.ai/cli/install.ps1 | iex`
 - For an app that Apervia builds from source: a GitHub account.
 - For an app that runs as an image (a server such as Express, or a project
-  with its own `Dockerfile`): [Docker](https://docs.docker.com/get-docker/),
-  or Podman or Colima, on your computer. The CLI builds the image for
+  with its own `Dockerfile`): [Docker](https://docs.docker.com/get-docker/)
+  on your computer, with its `docker` command. Colima works with the
+  `docker` command installed. Podman works only with its `docker`-compatible
+  command (`podman-docker`). The CLI builds the image for
   `linux/amd64` and sends it to Apervia. You need no registry and no
   registry sign-in.
 

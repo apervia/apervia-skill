@@ -92,9 +92,10 @@ Do the steps in order. Tell the person in one line what each step does.
    a code and opens a browser.
 4. Run `APERVIA_CLIENT=claude-skill apervia doctor --json`. Keep its
    `docker` part: `docker.available` says whether Docker runs on this
-   computer, and `docker.amd64` whether it can build a `linux/amd64` image.
-   Step 2 needs it for an image app. Do not talk about Docker to the person
-   for an app of another kind. The command can end with an error when it
+   computer, `docker.canBuild` whether it can build and send a `linux/amd64`
+   image, and `docker.reason` what to do when it cannot. Step 2 needs it for
+   an image app. Do not talk about Docker to the person for an app of
+   another kind. The command can end with an error when it
    cannot reach the releases of the CLI; its JSON still holds the `docker`
    part.
 
@@ -108,7 +109,7 @@ is the runtime class of the app, from its files. Read the matching file:
 | `static-bundle` | [references/classes/static-bundle.md](references/classes/static-bundle.md) |
 | `nextjs` | [references/classes/nextjs.md](references/classes/nextjs.md) |
 | `tanstack-start-nitro`, `tanstack-start-spa` | [references/classes/tanstack-start.md](references/classes/tanstack-start.md) |
-| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md). It needs Docker: read it before step 3 |
+| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md). It needs Docker: see below, before step 3 |
 | `static-site` | [references/classes/static-site.md](references/classes/static-site.md) |
 | `unknown` | Ask the person where the app is, and run the check on that folder |
 
@@ -117,6 +118,19 @@ that made the app, if you can see it (a `lovable-tagger` dependency, a
 `.bolt` folder, a README of the tool, or the person tells you). If it is
 known, also read its notes in [references/tools/](references/tools/). An app
 from another tool goes through the same steps with no notes.
+
+For an image class, check Docker now, before step 3 changes a file. Read
+the `docker` part of the doctor report of step 1:
+
+- `docker.available` is false: tell the person in plain words that this app
+  needs Docker, give them `docker.reason` (it has the install link), and
+  stop. Do not change a file.
+- `docker.canBuild` is false: give the person `docker.reason`, ask them to
+  say when it is fixed, and run the doctor again. Go on only when
+  `docker.canBuild` is true.
+
+[references/classes/image.md](references/classes/image.md) says what to tell
+the person in each case.
 
 Find the backend that the browser calls, for example a Supabase project. A
 backend that the browser calls needs no outbound host. Its settings are build
@@ -146,10 +160,8 @@ when the app is created.
 - The class file says which source the class needs.
 - An image app needs Docker on this computer, and no registry: the CLI
   builds the image for `linux/amd64` and sends it to Apervia
-  ([references/classes/image.md](references/classes/image.md)). With no
-  Docker (`docker.available` is false in the doctor report of step 1), tell
-  the person in plain words that this app needs Docker, give the install
-  link of the report, and stop.
+  ([references/classes/image.md](references/classes/image.md)). Step 2
+  has already checked that `docker.canBuild` is true.
 - A build app needs a GitHub repository. If the folder is not in one, follow
   [references/repository.md](references/repository.md) first.
 
