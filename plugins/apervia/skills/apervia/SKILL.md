@@ -211,9 +211,11 @@ For a build app:
    a build variable.
 3. For the upload: the CLI never uploads a `.env*` file, so the build does
    not read one. Set each public value that the app reads from a `.env*`
-   file (`.env`, `.env.production`, `.env.local` and the others, but not
-   `.env.example`) as a build variable on Apervia, with the same name. A
-   secret in a `.env*` file stays out of the build (see [references/upload.md](references/upload.md)).
+   file that the production build reads (`.env`, `.env.local`,
+   `.env.production` and `.env.production.local`; never `.env.development`,
+   `.env.test` or `.env.example`) as a build variable on Apervia, with the
+   same name. A secret in a `.env*` file stays out of the build (see
+   [references/upload.md](references/upload.md)).
 
 For an image app, set the runtime settings and secrets that the app reads.
 

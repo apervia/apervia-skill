@@ -18,19 +18,23 @@ ignore rules.
 
 So the build never reads a `.env` file of any name. Before the deploy, set
 each public value that the app reads from a `.env*` file as a build variable
-on Apervia. Look in every such file, not only `.env`: `.env.production`,
-`.env.local` and `.env.development` too, because a build such as
-`vite build` reads them. `.env.example` holds no real value: skip it.
+on Apervia. Look in each file that the production build reads, not only
+`.env`: `.env.local`, `.env.production` and `.env.production.local` too,
+because a production build such as `vite build` or `next build` reads them.
+Skip `.env.development`, `.env.development.local` and `.env.test*`: the
+production build never reads them, and their values (such as a `localhost`
+address) must not reach the live app. `.env.example` holds no real value:
+skip it.
 
 ```sh
 APERVIA_CLIENT=claude-skill apervia config set --build VITE_SUPABASE_URL=https://abcdefgh.supabase.co
 ```
 
 Find the files first: `ls -a | grep '^\.env'`. Read the names in each
-file except `.env.example`, with no value:
-`grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env .env.production .env.local`. Then
-read the line of each name that is public by design, one name at a time
-(`grep -H '^VITE_SUPABASE_URL=' .env .env.production .env.local`), and never
+of those files, with no value:
+`grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env .env.local .env.production .env.production.local`.
+Then read the line of each name that is public by design, one name at a time
+(`grep -H '^VITE_SUPABASE_URL=' .env .env.local .env.production .env.production.local`), and never
 the line of another name (see "Is it a secret?" in
 [configuration.md](configuration.md)). If a name is in more than one file,
 use the value that the production build reads: for Vite,

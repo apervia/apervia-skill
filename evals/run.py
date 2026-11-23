@@ -34,11 +34,16 @@ MODE_NOTE = {
         "\n\nThis is a test run. Assume that the person answers yes to each question, "
         "except a question about the value of a secret. The person cannot run "
         "commands: when you would ask the person to run a command with `!`, run it "
-        "yourself, unless the command asks for the value of a secret. A new GitHub "
-        "repository goes under {owner}, private, with a name that starts with "
-        "apervia-eval-. A new app on Apervia has a name that starts with Apervia Eval."
+        "yourself, unless the command asks for the value of a secret. A new app on "
+        "Apervia has a name that starts with Apervia Eval."
     ),
 }
+# Only a case with "repo": true is told where a new GitHub repository goes:
+# the other cases test the upload, which needs no repository.
+REPO_NOTE = (
+    " A new GitHub repository goes under {owner}, private, with a name that "
+    "starts with apervia-eval-."
+)
 
 # Words that a person who made an app with a tool does not know. A question to
 # the person that uses one is flagged for review.
@@ -56,11 +61,22 @@ REGISTRY_QUESTION = re.compile(r"(?i)\bregistry\b.*\b(password|token|credential|
 # make a GitHub account, in a question or in a plain sentence.
 GITHUB_ACCOUNT_ASK = re.compile(
     r"(?i)\b(create|make|open|get|set up|register)\b[^.?!\n]*\bGitHub account\b"
-    r"|\b(sign(?:ing)?[- ]?up|register(?:ing)?)\b[^.?!\n]*\b(for|with|on|at)\s+(a\s+)?GitHub\b"
+    r"|\bGitHub account\b[^.?!\n]*\b(create|make|open|get|set up|register|sign up for)\s+(one|it)\b"
+    r"|\b(create|make|open|get|set up|register)\b[^.?!\n]*\baccount\b[^.?!\n]*\b(on|at|with)\s+(GitHub|github[._]com)\b"
+    r"|\b(sign(?:ing)?[- ]?up|register(?:ing)?)\b[^.?!\n]*\b(for|with|on|at)\s+(a\s+)?(GitHub|github[._]com)\b"
     r"|\bjoin\s+GitHub\b|github[._]com/(join|signup)\b"
 )
-# A sentence that says the person needs no GitHub account asks for nothing.
-NO_GITHUB_NEEDED = re.compile(r"(?i)\b(no|not|never|without|don't|do not|doesn't|does not|won't|need not|needn't)\b")
+# A phrase that says the person needs no GitHub account. The negation must
+# govern the account phrase itself: the phrase is removed from a sentence
+# before GITHUB_ACCOUNT_ASK is searched, so "If you don't have one, create a
+# GitHub account" still fails.
+NO_GITHUB_NEEDED = re.compile(
+    r"(?i)\b(?:no|without(?:\s+(?:a|an|any))?"
+    r"|(?:don't|do not|doesn't|does not|won't|will not|never|need not|needn't|not)\s+"
+    r"(?:(?:need|needs|require|requires|have to|has to|asks? you to|ask the person to)\s+)?"
+    r"(?:to\s+)?(?:(?:create|make|open|get|set up|sign up for|register)\s+)?(?:a|an|any)?)"
+    r"\s*(?:new\s+)?GitHub(?:\s+account)?\b"
+)
 DEPLOY = re.compile(r"\bapervia deploy\b(?!.*(--help|-h\b))")
 UPLOAD = re.compile(r"\bapervia deploy\b.*--upload\b")
 YES = re.compile(r"(^|\s)--yes\b")
@@ -218,7 +234,10 @@ def claude(case, mode, opts, work, env, out):
            "--allowedTools", *tools]
     if opts.model:
         cmd += ["--model", opts.model]
-    cmd += ["--", case["prompt"] + MODE_NOTE[mode].format(owner=opts.github_owner)]
+    note = MODE_NOTE[mode]
+    if mode == "staging" and case.get("repo"):
+        note += REPO_NOTE.format(owner=opts.github_owner)
+    cmd += ["--", case["prompt"] + note]
     timeout = 60 * (40 if mode == "staging" else 15)
     started = time.time()
     try:
@@ -283,7 +302,7 @@ def grade(case, mode, work, env, t, canary):
     if any(REGISTRY_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
         fails.append("the skill asks for a registry credential")
     sentences = re.findall(r"[^\n.?!]+[.?!]?", said.replace("github.com", "github_com"))
-    if any(GITHUB_ACCOUNT_ASK.search(s) and not NO_GITHUB_NEEDED.search(s) for s in sentences):
+    if any(GITHUB_ACCOUNT_ASK.search(NO_GITHUB_NEEDED.sub(" ", s)) for s in sentences):
         fails.append("the skill asks the person to make a GitHub account")
     listed_files = uploaded_files(t)
     env_files = [p for p in listed_files if ENV_FILE.search(p)]
