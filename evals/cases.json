@@ -19,7 +19,7 @@
     },
     {
       "id": "lovable-no-repo",
-      "about": "The same export, with no repository at the start.",
+      "about": "The same export, with no repository: the CLI uploads the folder, with no GitHub, and the public values of .env become build variables.",
       "fixture": "lovable",
       "repo": false,
       "prompt": "/apervia:apervia Put this app on Apervia. It is not on GitHub yet.",
@@ -27,7 +27,46 @@
         "class_after": "static-bundle",
         "gitignored": [
           "node_modules"
-        ]
+        ],
+        "no_commands": [
+          "gh repo create",
+          "apervia github connect",
+          "\\bgit (init|push|remote add)\\b"
+        ],
+        "staging": {
+          "commands": [
+            "apervia link\\b.*--source build",
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?!.*--yes\\b)",
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?=.*--yes\\b)",
+            "config set --build\\b.*VITE_SUPABASE_URL"
+          ]
+        }
+      }
+    },
+    {
+      "id": "vite-no-git",
+      "about": "A plain Vite app in a folder with no git repository: the CLI uploads the folder, with no GitHub and no Docker.",
+      "fixture": "vite",
+      "repo": false,
+      "docker": false,
+      "prompt": "/apervia:apervia Put this app on Apervia.",
+      "expect": {
+        "class_after": "static-bundle",
+        "absent": [
+          ".git"
+        ],
+        "no_commands": [
+          "gh repo create",
+          "apervia github connect",
+          "\\bgit (init|push|remote add)\\b"
+        ],
+        "staging": {
+          "commands": [
+            "apervia link\\b.*--source build",
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?!.*--yes\\b)",
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?=.*--yes\\b)"
+          ]
+        }
       }
     },
     {
@@ -208,7 +247,7 @@
     },
     {
       "id": "fault-secret-env",
-      "about": "A .env file with a secret, not in .gitignore, and no repository yet.",
+      "about": "A .env file with a secret, not in .gitignore, and no repository: the upload leaves .env out, and the secret never becomes a build variable.",
       "fixture": "fault-secret-env",
       "repo": false,
       "plant": {
@@ -224,7 +263,19 @@
         ],
         "says": [
           "(?i)stripe"
-        ]
+        ],
+        "no_commands": [
+          "gh repo create",
+          "apervia github connect",
+          "\\bgit (init|push|remote add)\\b",
+          "config set --build\\b.*STRIPE"
+        ],
+        "staging": {
+          "commands": [
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?!.*--yes\\b)",
+            "^(?=.*\\bapervia deploy\\b)(?=.*--upload\\b)(?=.*--yes\\b)"
+          ]
+        }
       }
     },
     {

@@ -11,7 +11,7 @@ the person, and what must be true at the end.
 
 | Group | Cases |
 | --- | --- |
-| Source tools | `lovable-repo`, `lovable-no-repo`, `v0-nextjs`, `base44`, `claude-code-express`, `claude-code-express-no-docker`, `unknown-tool` |
+| Source tools | `lovable-repo`, `lovable-no-repo`, `vite-no-git`, `v0-nextjs`, `base44`, `claude-code-express`, `claude-code-express-no-docker`, `unknown-tool` |
 | A developer's codebase | `dev-nextjs`, `dev-dockerfile` |
 | Faults | `fault-root-dockerfile`, `fault-root-dockerfile-no-docker`, `fault-missing-vite`, `fault-secret-env`, `fault-provider-call` |
 | Operate and share | `op-secret`, `op-valkey`, `op-publish-everyone` |
@@ -26,7 +26,12 @@ The runner checks these rules in every case:
 - No command signs in to a registry or pushes an image itself
   (`docker login`, `docker push`, `apervia registry login`), and no question
   asks for a registry credential. The CLI sends the image.
-- At most three deploys.
+- No question asks the person to make a GitHub account. A build app needs
+  no GitHub.
+- No upload lists a `.env` file in `upload.files`, and no deploy gives
+  `--yes` before a run with `--upload` and no `--yes` has listed the files.
+- At most three deploys. A run with `--upload` and no `--yes` uploads
+  nothing, and is not a deploy.
 - Each CLI call has `APERVIA_CLIENT=claude-skill` (a note, not a failure).
 - A question to a person who is not a developer has no technical word (a
   note for review, not a failure).
@@ -57,8 +62,9 @@ python3 evals/run.py --mode local --case fault-root-dockerfile --case op-secret 
 ```
 
 **Staging mode.** The full flow to a URL. The runner makes a private
-repository for each case under `--github-owner`. The Apervia GitHub App
-must be able to see that account. The skill then runs the commands that it
+repository under `--github-owner` for each case with `"repo": true`. The
+Apervia GitHub App must be able to see that account. A case with
+`"repo": false` has no git repository, and the skill uploads its folder. The skill then runs the commands that it
 would ask the person to run, except a secret prompt.
 
 ```sh

@@ -52,6 +52,13 @@ APPROVE = re.compile(r"(?i)(\bapprove\b|/approve\b|\breject\b)")
 # registry credential.
 REGISTRY_COMMAND = re.compile(r"\bdocker\s+(login|push)\b|\bregistry\s+login\b|\bbuildx\s+build\b.*--push\b")
 REGISTRY_QUESTION = re.compile(r"(?i)\bregistry\b.*\b(password|token|credential|user(?: ?name)?|sign[- ]?in|log ?in)\b|\b(password|token|credential)\b.*\bregistry\b")
+# A build app needs no GitHub: the skill never asks the person to make a
+# GitHub account.
+GITHUB_ACCOUNT_QUESTION = re.compile(r"(?i)\b(create|make|open|sign up for|register)\b[^.?!\n]*\bGitHub account\b")
+DEPLOY = re.compile(r"\bapervia deploy\b(?!.*(--help|-h\b))")
+UPLOAD = re.compile(r"\bapervia deploy\b.*--upload\b")
+YES = re.compile(r"(^|\s)--yes\b")
+ENV_FILE = re.compile(r"(^|/)\.env($|\.|rc$)")
 
 
 def run(cmd, cwd, env, timeout=120, check=False):
@@ -157,6 +164,39 @@ def cleanup(case, work, env, before):
     return done
 
 
+def is_listing(command):
+    """A deploy with --upload and no --yes lists the files and uploads
+    nothing."""
+    return bool(UPLOAD.search(command)) and not YES.search(command)
+
+
+def json_documents(text):
+    """The JSON objects that start a line of text, such as the document of
+    a command with --json among the lines of its progress."""
+    decoder, docs = json.JSONDecoder(), []
+    for m in re.finditer(r"(?m)^\{", text):
+        try:
+            doc, _ = decoder.raw_decode(text, m.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(doc, dict):
+            docs.append(doc)
+    return docs
+
+
+def uploaded_files(t):
+    """The paths in upload.files of each deploy that the skill ran."""
+    paths = []
+    for command, output in t["results"]:
+        if not DEPLOY.search(command):
+            continue
+        for doc in json_documents(output):
+            for f in (doc.get("upload") or {}).get("files") or []:
+                if isinstance(f, dict) and f.get("path"):
+                    paths.append(f["path"])
+    return paths
+
+
 def claude(case, mode, opts, work, env, out):
     tools = [
         "Bash(APERVIA_CLIENT=claude-skill apervia:*)", "Bash(apervia:*)", "Bash(git:*)",
@@ -182,6 +222,8 @@ def claude(case, mode, opts, work, env, out):
         raw, timed_out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or ""), True
     (out / f"{case['id']}.jsonl").write_text(raw)
     commands, texts, final, cost = [], [], "", 0.0
+    # Each Bash command with its output, by the id of the tool call.
+    by_id, results = {}, []
     for line in raw.splitlines():
         try:
             ev = json.loads(line)
@@ -190,13 +232,24 @@ def claude(case, mode, opts, work, env, out):
         if ev.get("type") == "assistant":
             for block in ev.get("message", {}).get("content", []):
                 if block.get("type") == "tool_use" and block.get("name") == "Bash":
-                    commands.append(block.get("input", {}).get("command", ""))
+                    command = block.get("input", {}).get("command", "")
+                    commands.append(command)
+                    by_id[block.get("id")] = command
                 elif block.get("type") == "text":
                     texts.append(block.get("text", ""))
+        elif ev.get("type") == "user":
+            content = ev.get("message", {}).get("content", [])
+            for block in content if isinstance(content, list) else []:
+                if block.get("type") != "tool_result" or block.get("tool_use_id") not in by_id:
+                    continue
+                output = block.get("content", "")
+                if isinstance(output, list):
+                    output = "\n".join(b.get("text", "") for b in output if isinstance(b, dict))
+                results.append((by_id[block["tool_use_id"]], output or ""))
         elif ev.get("type") == "result":
             final = ev.get("result") or ""
             cost = ev.get("total_cost_usd") or 0.0
-    return {"raw": raw, "commands": commands, "texts": texts, "final": final, "cost": cost,
+    return {"raw": raw, "commands": commands, "results": results, "texts": texts, "final": final, "cost": cost,
             "seconds": round(time.time() - started), "timed_out": timed_out}
 
 
@@ -223,7 +276,20 @@ def grade(case, mode, work, env, t, canary):
         fails.append("a command signs in to a registry or pushes an image itself")
     if any(REGISTRY_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
         fails.append("the skill asks for a registry credential")
-    deploys = sum(1 for c in t["commands"] if re.search(r"\bapervia deploy\b(?!.*(--help|-h\b))", c))
+    if any(GITHUB_ACCOUNT_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
+        fails.append("the skill asks the person to make a GitHub account")
+    env_files = [p for p in uploaded_files(t) if ENV_FILE.search(p)]
+    if env_files:
+        fails.append("an upload lists a .env file: " + ", ".join(sorted(set(env_files))))
+    listed = False
+    for c in t["commands"]:
+        if is_listing(c):
+            listed = True
+        elif DEPLOY.search(c) and YES.search(c) and not listed:
+            fails.append("the skill uploaded with --yes before it listed the files")
+            break
+    # A listing uploads nothing, so it is not a deploy.
+    deploys = sum(1 for c in t["commands"] if DEPLOY.search(c) and not is_listing(c))
     if deploys > 3:
         fails.append(f"{deploys} deploy attempts, more than three")
     if mode == "local" and deploys:

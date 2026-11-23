@@ -16,7 +16,7 @@ example Supabase) directly. The server only serves files.
 
 ## What to check
 
-- `package.json` is at the root of the repository, and has a `build` script.
+- `package.json` is at the root of the folder, and has a `build` script.
   A project in a subfolder does not build: ask the person whether to move it
   to the root.
 - The build writes `dist/index.html`. A project whose build writes to another
@@ -32,8 +32,11 @@ example Supabase) directly. The server only serves files.
   Set each one with `apervia config set --build NAME=value` before the first
   build. A value that is secret must not be in the browser code at all
   (AC-CFG-2): move that call to a server, or tell the person.
-- A `.env` file in the repository: see AC-BUILD-5 in
-  [../contract.md](../contract.md). Its public values become build variables.
+- A `.env` file: see AC-BUILD-5 in [../contract.md](../contract.md). The
+  upload never holds a `.env` file
+  ([../upload.md](../upload.md)), so set each of its public values as a
+  build variable before the first build. A secret in it is never a build
+  variable.
 - No server code runs. An Express server in the project is a different class
   (`node-server`).
 

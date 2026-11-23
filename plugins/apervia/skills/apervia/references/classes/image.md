@@ -103,7 +103,7 @@ password. The CLI needs none of them. Do not show a credential or a token
 that a command prints.
 
 If the push fails, the JSON error has a `code`. Read
-[../failures.md](../failures.md#when-the-push-fails).
+[../failures.md](../failures.md#when-the-upload-or-the-push-fails).
 
 When the developer already publishes the image to a registry that the tenant
 can read, deploy that image by digest instead:

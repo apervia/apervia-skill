@@ -18,11 +18,36 @@ cause usually is.
 | `scheduling`, `setup`, or a reason that is not in this table | The platform could not start the app | `apervia release show` | Smaller resources with `apervia scale`, or tell the person to ask an administrator |
 | `superseded`, `stopped` | A newer release or a stop replaced it | Nothing | Not a fault |
 
-## When the push fails
+## When the upload or the push fails
 
-`apervia deploy --push` builds the image on the person's computer and sends
-it to Apervia before the release. When that fails, nothing was released, and
-the app keeps its last release. The JSON error has a `code`:
+`apervia deploy --upload` packs the folder of a build app and sends it to
+Apervia before the build. `apervia deploy --push` builds the image of an
+image app on the person's computer and sends it to Apervia before the
+release. When either fails, nothing was released, and the app keeps its last
+release. The JSON error has a `code`.
+
+### The upload
+
+| `code` | What it means | What to tell the person, and do |
+| --- | --- | --- |
+| `upload_needs_yes` | The CLI listed the files and uploaded nothing, because `--yes` was not given | Not a fault. Check the list and ask the person ([upload.md](upload.md)), then run the command again with `--yes` |
+| `source_too_large` | The folder is over the limits of Apervia: 50000 files and folders, 1 GiB of files, or an archive of 256 MiB. Nothing was uploaded | The message names the largest files. Usually a folder that the app does not need is in the list: build output, a video, a data dump, a second copy of the project. Ask the person, add that folder to `.apervia-ignore`, and list again. Do not delete the files |
+| `push_over_quota` | The tenant has no more room for uploads and images | The same as for an image, in the table below. Do not deploy again until an administrator says it is done |
+| `push_refused` | Apervia refused the upload. Usually Apervia is cleaning up old uploads and images, and it takes none while it does | Wait some minutes, and deploy again once. If it is refused again, the person may not be allowed to release this environment, or the tenant has no more room: say so, and stop |
+| `registry_unavailable` | Apervia cannot take the upload now | Wait some minutes, and deploy again once |
+| `push_failed` | The upload did not reach Apervia, for example a network fault | Deploy again once. If it fails again, tell the person what the error says |
+
+When the error says "the folder is uploaded, but the platform did not start
+its build", the upload worked and Apervia refused the build. The rest of
+the message says why, and the `code` is the one of Apervia:
+
+- `disk_quota_full`: the tenant has no more room. Tell the person what
+  `push_over_quota` says, and stop.
+- A message that says to try again in a few minutes: Apervia is cleaning
+  up old uploads and images. Wait some minutes, and deploy again once.
+- Another message: tell the person the message in plain words, and stop.
+
+### The push of an image
 
 | `code` | What it means | What to tell the person, and do |
 | --- | --- | --- |
@@ -34,7 +59,7 @@ the app keeps its last release. The JSON error has a `code`:
 | `no_local_image` | There is no `Dockerfile` in the folder, or no image of that name | Write the `Dockerfile` ([classes/image.md](classes/image.md)), or run the command in the folder of the app |
 | `push_failed` | The image did not reach Apervia, for example a network fault | Deploy again once. If it fails again, tell the person what the error says |
 
-Never answer a push failure with `docker login`, `docker push`, or a
+Never answer an upload or a push failure with `docker login`, `docker push`, or a
 question about a registry or its password: the CLI needs none of them.
 
 ## Build
@@ -46,7 +71,11 @@ Read the end of `apervia build logs`. Common causes:
   `npm run build` (or the package manager of the project) on the laptop to
   see the same error.
 - A lockfile that does not match `package.json`: install again with the
-  package manager of the project, and commit the new lockfile.
+  package manager of the project. With the GitHub way, commit the new
+  lockfile.
+- A build variable that was only in a `.env` file: the upload never holds
+  a `.env` file. Set the public value with `apervia config set --build`, and
+  deploy again.
 - No `index.html` in the output folder (AC-BUILD-4): the log names the file.
 - A build variable that the build needs is missing. Set it with
   `apervia config set --build`, and deploy again.
@@ -54,7 +83,8 @@ Read the end of `apervia build logs`. Common causes:
 ## The app runs, but a page is wrong
 
 - A blank page and errors about `undefined` in the browser console: a build
-  variable is missing (AC-CFG-1). Set it, and deploy again: a build variable
+  variable is missing (AC-CFG-1), often a value that was only in `.env`,
+  which the upload leaves out. Set it, and deploy again: a build variable
   needs a new build.
 - A page that says the person has no access: the app is private. Only its
   builders can open it ([sharing.md](sharing.md)).
