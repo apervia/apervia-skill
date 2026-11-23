@@ -9,7 +9,8 @@ example Supabase) directly. The server only serves files.
 ## What the build does
 
 1. It installs with the package manager that `package.json` names, or else
-   the lockfile. Commit the lockfile (AC-BUILD-2).
+   the lockfile. With the GitHub way, commit the lockfile (AC-BUILD-2). With
+   the upload, keep it in the folder, and make no git repository.
 2. It runs the `build` script (AC-BUILD-3).
 3. It serves the folder `dist` as static files. Each unknown path gets
    `index.html`, so a client-side router works (AC-BUILD-4).

@@ -16,18 +16,27 @@ It lists each file that it leaves out as a secret in `upload.skipped`, with
 the reason. It does not list `.git`, `node_modules`, or the files of the
 ignore rules.
 
-So the build never reads a `.env` file. Before the deploy, set each public
-value that the app reads from `.env` as a build variable on Apervia:
+So the build never reads a `.env` file of any name. Before the deploy, set
+each public value that the app reads from a `.env*` file as a build variable
+on Apervia. Look in every such file, not only `.env`: `.env.production`,
+`.env.local` and `.env.development` too, because a build such as
+`vite build` reads them. `.env.example` holds no real value: skip it.
 
 ```sh
 APERVIA_CLIENT=claude-skill apervia config set --build VITE_SUPABASE_URL=https://abcdefgh.supabase.co
 ```
 
-Read the names in `.env` first, with no value:
-`grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env`. Then read the line of each name
-that is public by design, one name at a time
-(`grep '^VITE_SUPABASE_URL=' .env`), and never the line of another name (see "Is it a secret?" in [configuration.md](configuration.md)). A secret
-in `.env` is never a build variable (rule 1 in [../SKILL.md](../SKILL.md)).
+Find the files first: `ls -a | grep '^\.env'`. Read the names in each
+file except `.env.example`, with no value:
+`grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env .env.production .env.local`. Then
+read the line of each name that is public by design, one name at a time
+(`grep -H '^VITE_SUPABASE_URL=' .env .env.production .env.local`), and never
+the line of another name (see "Is it a secret?" in
+[configuration.md](configuration.md)). If a name is in more than one file,
+use the value that the production build reads: for Vite,
+`.env.production.local` wins over `.env.production`, which wins over
+`.env.local`, which wins over `.env`. A secret in a `.env*` file is never a
+build variable (rule 1 in [../SKILL.md](../SKILL.md)).
 If the app needs it on a server, set it as a secret: the person types it.
 
 ## Before the upload

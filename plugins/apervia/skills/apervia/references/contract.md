@@ -44,8 +44,9 @@ A `must` rule: the app does not build, does not start, or is not safe. A
   its Dockerfile is an image app.
 - **AC-BUILD-2.** A build from source needs a Node.js project with
   `package.json` at the root of the repository. The build uses the package
-  manager that `package.json` names, or else the lockfile. Commit the
-  lockfile.
+  manager that `package.json` names, or else the lockfile. The lockfile must
+  be in the source: with the GitHub way, commit it; with the upload, it is in
+  the folder.
 - **AC-BUILD-3.** The build runs the `build` script of `package.json`.
 - **AC-BUILD-4.** What starts depends on the project: Next.js runs
   `next start`; TanStack Start with Nitro runs `.output/server/index.mjs`;

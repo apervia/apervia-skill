@@ -25,8 +25,8 @@ links to, into `dist`. Put files that the HTML does not link to (for example
    }
    ```
 
-2. Run `npm install` to make `package-lock.json`, and commit both files
-   (AC-BUILD-2).
+2. Run `npm install` to make `package-lock.json`. With the GitHub way,
+   commit both files (AC-BUILD-2). With the upload, make no git repository.
 3. Run `npm run build`, and check that `dist/index.html` exists.
 
 Then run `apervia check` again. It must report `static-bundle`. Continue with

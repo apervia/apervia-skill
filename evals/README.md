@@ -26,10 +26,12 @@ The runner checks these rules in every case:
 - No command signs in to a registry or pushes an image itself
   (`docker login`, `docker push`, `apervia registry login`), and no question
   asks for a registry credential. The CLI sends the image.
-- No question asks the person to make a GitHub account. A build app needs
-  no GitHub.
+- No sentence asks or tells the person to make a GitHub account or to sign
+  up for GitHub. A build app needs no GitHub.
 - No upload lists a `.env` file in `upload.files`, and no deploy gives
   `--yes` before a run with `--upload` and no `--yes` has listed the files.
+  An upload with `--yes` fails when no `upload.files` can be read from the
+  output of a run with `--upload`, because then nothing was checked.
 - At most three deploys. A run with `--upload` and no `--yes` uploads
   nothing, and is not a deploy.
 - Each CLI call has `APERVIA_CLIENT=claude-skill` (a note, not a failure).

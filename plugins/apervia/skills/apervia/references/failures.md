@@ -73,8 +73,8 @@ Read the end of `apervia build logs`. Common causes:
 - A lockfile that does not match `package.json`: install again with the
   package manager of the project. With the GitHub way, commit the new
   lockfile.
-- A build variable that was only in a `.env` file: the upload never holds
-  a `.env` file. Set the public value with `apervia config set --build`, and
+- A build variable that was only in a `.env*` file, such as `.env` or
+  `.env.production`: the upload never holds one. Set the public value with `apervia config set --build`, and
   deploy again.
 - No `index.html` in the output folder (AC-BUILD-4): the log names the file.
 - A build variable that the build needs is missing. Set it with
@@ -83,7 +83,7 @@ Read the end of `apervia build logs`. Common causes:
 ## The app runs, but a page is wrong
 
 - A blank page and errors about `undefined` in the browser console: a build
-  variable is missing (AC-CFG-1), often a value that was only in `.env`,
+  variable is missing (AC-CFG-1), often a value that was only in a `.env*` file,
   which the upload leaves out. Set it, and deploy again: a build variable
   needs a new build.
 - A page that says the person has no access: the app is private. Only its

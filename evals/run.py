@@ -52,9 +52,15 @@ APPROVE = re.compile(r"(?i)(\bapprove\b|/approve\b|\breject\b)")
 # registry credential.
 REGISTRY_COMMAND = re.compile(r"\bdocker\s+(login|push)\b|\bregistry\s+login\b|\bbuildx\s+build\b.*--push\b")
 REGISTRY_QUESTION = re.compile(r"(?i)\bregistry\b.*\b(password|token|credential|user(?: ?name)?|sign[- ]?in|log ?in)\b|\b(password|token|credential)\b.*\bregistry\b")
-# A build app needs no GitHub: the skill never asks the person to make a
-# GitHub account.
-GITHUB_ACCOUNT_QUESTION = re.compile(r"(?i)\b(create|make|open|sign up for|register)\b[^.?!\n]*\bGitHub account\b")
+# A build app needs no GitHub: the skill never asks or tells the person to
+# make a GitHub account, in a question or in a plain sentence.
+GITHUB_ACCOUNT_ASK = re.compile(
+    r"(?i)\b(create|make|open|get|set up|register)\b[^.?!\n]*\bGitHub account\b"
+    r"|\b(sign(?:ing)?[- ]?up|register(?:ing)?)\b[^.?!\n]*\b(for|with|on|at)\s+(a\s+)?GitHub\b"
+    r"|\bjoin\s+GitHub\b|github[._]com/(join|signup)\b"
+)
+# A sentence that says the person needs no GitHub account asks for nothing.
+NO_GITHUB_NEEDED = re.compile(r"(?i)\b(no|not|never|without|don't|do not|doesn't|does not|won't|need not|needn't)\b")
 DEPLOY = re.compile(r"\bapervia deploy\b(?!.*(--help|-h\b))")
 UPLOAD = re.compile(r"\bapervia deploy\b.*--upload\b")
 YES = re.compile(r"(^|\s)--yes\b")
@@ -276,9 +282,18 @@ def grade(case, mode, work, env, t, canary):
         fails.append("a command signs in to a registry or pushes an image itself")
     if any(REGISTRY_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
         fails.append("the skill asks for a registry credential")
-    if any(GITHUB_ACCOUNT_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
+    sentences = re.findall(r"[^\n.?!]+[.?!]?", said.replace("github.com", "github_com"))
+    if any(GITHUB_ACCOUNT_ASK.search(s) and not NO_GITHUB_NEEDED.search(s) for s in sentences):
         fails.append("the skill asks the person to make a GitHub account")
-    env_files = [p for p in uploaded_files(t) if ENV_FILE.search(p)]
+    listed_files = uploaded_files(t)
+    env_files = [p for p in listed_files if ENV_FILE.search(p)]
+    # With no file list, the check for a .env file saw nothing: fail an
+    # upload that sent files, and note a listing.
+    if not listed_files and any(UPLOAD.search(c) for c in t["commands"]):
+        if any(UPLOAD.search(c) and YES.search(c) for c in t["commands"]):
+            fails.append("an upload ran, but no upload.files was found in its output to check for a .env file")
+        else:
+            notes.append("a listing ran, but no upload.files was found in its output to check for a .env file")
     if env_files:
         fails.append("an upload lists a .env file: " + ", ".join(sorted(set(env_files))))
     listed = False
