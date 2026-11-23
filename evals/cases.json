@@ -60,7 +60,7 @@
     },
     {
       "id": "claude-code-express",
-      "about": "An app that Claude Code made: an Express server on a fixed port and localhost.",
+      "about": "An app that Claude Code made: an Express server on a fixed port and localhost, on a computer with Docker.",
       "fixture": "claude-code",
       "repo": true,
       "prompt": "/apervia:apervia I want this on Apervia.",
@@ -71,9 +71,50 @@
             "process\\.env\\.PORT"
           ]
         ],
+        "commands": [
+          "apervia doctor\\b.*--json"
+        ],
         "says": [
-          "(?i)image"
-        ]
+          "(?i)image",
+          "linux/amd64"
+        ],
+        "staging": {
+          "present": [
+            "Dockerfile",
+            ".dockerignore"
+          ],
+          "commands": [
+            "apervia deploy\\b.*--push"
+          ]
+        }
+      },
+      "docker": true
+    },
+    {
+      "id": "claude-code-express-no-docker",
+      "about": "The same Express app, on a computer with no Docker: the skill says that the app needs Docker, and stops.",
+      "fixture": "claude-code",
+      "repo": true,
+      "docker": false,
+      "prompt": "/apervia:apervia I want this on Apervia.",
+      "expect": {
+        "commands": [
+          "apervia doctor\\b.*--json"
+        ],
+        "no_commands": [
+          "apervia (link|deploy)\\b"
+        ],
+        "unchanged": [
+          "server.js"
+        ],
+        "absent": [
+          "Dockerfile"
+        ],
+        "says": [
+          "(?i)\\bdocker\\b",
+          "docs\\.docker\\.com/get-docker"
+        ],
+        "ready": false
       }
     },
     {
@@ -101,10 +142,16 @@
         "present": [
           "Dockerfile"
         ],
+        "staging": {
+          "commands": [
+            "apervia (github workflow|deploy\\b.*(--push|--image \\S+@sha256:))"
+          ]
+        },
         "commands": [
-          "apervia (github workflow|deploy\\b.*--image \\S+@sha256:)"
+          "apervia doctor\\b.*--json"
         ]
-      }
+      },
+      "docker": true
     },
     {
       "id": "unknown-tool",
@@ -124,6 +171,20 @@
       "about": "A Lovable app with a root Dockerfile that only serves the build.",
       "fixture": "fault-root-dockerfile",
       "repo": true,
+      "prompt": "/apervia:apervia Put this app on Apervia.",
+      "expect": {
+        "class_after": "static-bundle",
+        "absent": [
+          "Dockerfile"
+        ]
+      }
+    },
+    {
+      "id": "fault-root-dockerfile-no-docker",
+      "about": "The same Lovable app with a root Dockerfile, on a computer with no Docker: the skill removes the Dockerfile and does not stop for Docker.",
+      "fixture": "fault-root-dockerfile",
+      "repo": true,
+      "docker": false,
       "prompt": "/apervia:apervia Put this app on Apervia.",
       "expect": {
         "class_after": "static-bundle",

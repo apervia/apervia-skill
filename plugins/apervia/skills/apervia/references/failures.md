@@ -7,7 +7,7 @@ cause usually is.
 | Reason | What it means | Look at | Usual fix |
 | --- | --- | --- | --- |
 | The build failed | The build of the source failed | `apervia build logs` | See "Build" below |
-| `image-pull` | The platform cannot get the image | The image name and digest | Check the digest; an administrator adds the registry in the console (AC-BUILD-6) |
+| `image-pull` | The platform cannot get the image | The image name and digest | Deploy again with `apervia deploy --push`. For an image that the developer published, check the digest; an administrator adds that registry in the console (AC-BUILD-6) |
 | `container-config` | The app cannot be created from its settings | `apervia release show` | A user that is a name, not a number (AC-SEC-1); a missing secret or setting that the release names |
 | `container-start` | The program in the image cannot start | `apervia release show` | The start command, or a file that the image does not have |
 | `crash-loop` | The app starts and stops again and again | `apervia logs --previous` | Read the last lines: a missing setting, a fixed port, a crash at start |
@@ -17,6 +17,25 @@ cause usually is.
 | `outbound-hosts` | The app needs an outside host that is not allowed | `apervia status` | Allow the host ([outbound.md](outbound.md)) |
 | `scheduling`, `setup`, or a reason that is not in this table | The platform could not start the app | `apervia release show` | Smaller resources with `apervia scale`, or tell the person to ask an administrator |
 | `superseded`, `stopped` | A newer release or a stop replaced it | Nothing | Not a fault |
+
+## When the push fails
+
+`apervia deploy --push` builds the image on the person's computer and sends
+it to Apervia before the release. When that fails, nothing was released, and
+the app keeps its last release. The JSON error has a `code`:
+
+| `code` | What it means | What to tell the person, and do |
+| --- | --- | --- |
+| `push_over_quota` | The tenant has no more room for images | Apervia has no room for the app right now. An administrator of the tenant deletes images or data that the tenant no longer needs, or asks the operator of the platform for more room. Do not deploy again until they say it is done |
+| `push_refused` | Apervia refused the image. Usually Apervia is cleaning up old images, and it takes no image while it does | Apervia is busy for a few minutes. Wait some minutes, and deploy again once. If it is refused again, the person may not be allowed to release this environment, or the tenant has no more room: say so, and stop |
+| `registry_unavailable` | Apervia cannot take the image now | Wait some minutes, and deploy again once |
+| `image_not_amd64` | The image is not for `linux/amd64`, the only architecture that Apervia runs | Deploy with `apervia deploy --push` and no image name, so that the CLI builds the `Dockerfile` for `linux/amd64`. If the `Dockerfile` names another platform (`FROM --platform=...`), remove that. If the build then fails, read `local_build_failed` |
+| `local_build_failed` | Docker could not build the `Dockerfile` | Read the output of Docker above the error, fix the `Dockerfile` or the app, and deploy again. If Docker itself fails, run `apervia doctor --json` and give the person `docker.reason` |
+| `no_local_image` | There is no `Dockerfile` in the folder, or no image of that name | Write the `Dockerfile` ([classes/image.md](classes/image.md)), or run the command in the folder of the app |
+| `push_failed` | The image did not reach Apervia, for example a network fault | Deploy again once. If it fails again, tell the person what the error says |
+
+Never answer a push failure with `docker login`, `docker push`, or a
+question about a registry or its password: the CLI needs none of them.
 
 ## Build
 

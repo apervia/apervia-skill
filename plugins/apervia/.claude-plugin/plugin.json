@@ -1,7 +1,7 @@
 {
   "name": "apervia",
   "displayName": "Apervia",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Prepare an app, deploy it to Apervia, and operate it, with the apervia CLI.",
   "author": {
     "name": "The Curve Consulting"
