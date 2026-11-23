@@ -180,6 +180,20 @@
       }
     },
     {
+      "id": "fault-root-dockerfile-no-docker",
+      "about": "The same Lovable app with a root Dockerfile, on a computer with no Docker: the skill removes the Dockerfile and does not stop for Docker.",
+      "fixture": "fault-root-dockerfile",
+      "repo": true,
+      "docker": false,
+      "prompt": "/apervia:apervia Put this app on Apervia.",
+      "expect": {
+        "class_after": "static-bundle",
+        "absent": [
+          "Dockerfile"
+        ]
+      }
+    },
+    {
       "id": "fault-missing-vite",
       "about": "The browser code reads VITE_MENU_API_URL, which has no value anywhere.",
       "fixture": "fault-missing-vite",

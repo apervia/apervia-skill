@@ -109,7 +109,7 @@ is the runtime class of the app, from its files. Read the matching file:
 | `static-bundle` | [references/classes/static-bundle.md](references/classes/static-bundle.md) |
 | `nextjs` | [references/classes/nextjs.md](references/classes/nextjs.md) |
 | `tanstack-start-nitro`, `tanstack-start-spa` | [references/classes/tanstack-start.md](references/classes/tanstack-start.md) |
-| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md). It needs Docker: see below, before step 3 |
+| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md). See below, before step 3 |
 | `static-site` | [references/classes/static-site.md](references/classes/static-site.md) |
 | `unknown` | Ask the person where the app is, and run the check on that folder |
 
@@ -119,8 +119,15 @@ that made the app, if you can see it (a `lovable-tagger` dependency, a
 known, also read its notes in [references/tools/](references/tools/). An app
 from another tool goes through the same steps with no notes.
 
-For an image class, check Docker now, before step 3 changes a file. Read
-the `docker` part of the doctor report of step 1:
+For an image class, first find out whether the app must stay an image app.
+[references/classes/image.md](references/classes/image.md) says when it need
+not: a root `Dockerfile` that only builds and serves a static bundle or a
+Next.js app, or a frontend with a small server only for files. Ask the
+person, and if they agree, make the change and run the check again. The app
+then has a build class: follow the file of that class, with no Docker.
+
+When the app stays an image app, check Docker now, before step 3 changes a
+file. Read the `docker` part of the doctor report of step 1:
 
 - `docker.available` is false: tell the person in plain words that this app
   needs Docker, give them `docker.reason` (it has the install link), and

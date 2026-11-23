@@ -13,7 +13,7 @@ the person, and what must be true at the end.
 | --- | --- |
 | Source tools | `lovable-repo`, `lovable-no-repo`, `v0-nextjs`, `base44`, `claude-code-express`, `claude-code-express-no-docker`, `unknown-tool` |
 | A developer's codebase | `dev-nextjs`, `dev-dockerfile` |
-| Faults | `fault-root-dockerfile`, `fault-missing-vite`, `fault-secret-env`, `fault-provider-call` |
+| Faults | `fault-root-dockerfile`, `fault-root-dockerfile-no-docker`, `fault-missing-vite`, `fault-secret-env`, `fault-provider-call` |
 | Operate and share | `op-secret`, `op-valkey`, `op-publish-everyone` |
 
 The runner checks these rules in every case:

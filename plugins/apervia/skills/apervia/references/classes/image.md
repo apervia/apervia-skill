@@ -9,13 +9,25 @@ AC-CLASS-3). Docker on the person's computer builds the app into an image,
 and the CLI sends it to Apervia and releases it. The person needs Docker,
 but no registry and no registry sign-in.
 
-If the app is a frontend with a small server only for files, ask whether the
-server can go, so that the app is a static bundle.
+## First: must the app stay an image app?
 
-## First: does this computer have Docker?
+Answer this before you check Docker. An app that need not be an image app
+needs no Docker.
+
+- A `Dockerfile` at the root makes `apervia check` report `dockerfile`.
+  Some tools add one to a plain Vite app. If the app is a static bundle or
+  Next.js and the Dockerfile only builds and serves it, ask the person
+  whether to remove it, so that the platform builds the app from source.
+- If the app is a frontend with a small server only for files, ask whether
+  the server can go, so that the app is a static bundle.
+
+After the change, run the check again and follow the file of the new class.
+Do not check Docker for it. If the app stays an image app, go on below.
+
+## Then: does this computer have Docker?
 
 Read the `docker` part of the `apervia doctor --json` report from step 1 of
-the deploy flow. Do this before you change a file.
+the deploy flow. Do this before you change a file for the image.
 
 - `docker.available` is false: Docker is missing, or it does not run. Tell
   the person, in plain words, that this app needs Docker on their computer
@@ -35,14 +47,6 @@ the deploy flow. Do this before you change a file.
   `docker.amd64.mode` is `emulation` (for example a Mac with Apple
   silicon), add that the build works, but is slower than on an Intel or AMD
   computer. Then go on.
-
-## A root Dockerfile in an app that does not need it
-
-A `Dockerfile` at the root makes `apervia check` report `dockerfile`. Some
-tools add one to a plain Vite app. If the app is a static bundle or Next.js
-and the Dockerfile only builds and serves it, ask the person whether to
-remove it, so that the platform builds the app from source. Run the check
-again after the change.
 
 ## What the image must do
 
