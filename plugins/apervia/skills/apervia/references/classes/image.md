@@ -29,12 +29,12 @@ the deploy flow. Do this before you change a file.
   check, which can say to start the builder). Ask them to say when it is
   done, run `APERVIA_CLIENT=claude-skill apervia doctor --json` again, and
   go on only when `docker.canBuild` is true.
-- `docker.canBuild` is true: go on.
-
-Tell the person that Apervia runs `linux/amd64` images, and that the CLI
-builds the image for `linux/amd64`. If `docker.amd64.mode` is `emulation`
-(for example a Mac with Apple silicon), say that the build works, but is
-slower than on an Intel or AMD computer.
+- `docker.canBuild` is true: tell the person, in one sentence, that
+  Docker works and that the CLI builds the app for `linux/amd64`, the kind
+  of computer that Apervia runs. Write `linux/amd64` in that sentence. If
+  `docker.amd64.mode` is `emulation` (for example a Mac with Apple
+  silicon), add that the build works, but is slower than on an Intel or AMD
+  computer. Then go on.
 
 ## A root Dockerfile in an app that does not need it
 

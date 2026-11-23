@@ -142,8 +142,13 @@
         "present": [
           "Dockerfile"
         ],
+        "staging": {
+          "commands": [
+            "apervia (github workflow|deploy\\b.*(--push|--image \\S+@sha256:))"
+          ]
+        },
         "commands": [
-          "apervia (github workflow|deploy\\b.*(--push|--image \\S+@sha256:))"
+          "apervia doctor\\b.*--json"
         ]
       },
       "docker": true

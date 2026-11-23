@@ -189,7 +189,8 @@ For a build app, run
 For an image app, run
 `APERVIA_CLIENT=claude-skill apervia deploy --push --wait --timeout 9m --json`
 in the folder of the app. The CLI builds the `Dockerfile` for `linux/amd64`,
-sends the image to Apervia and releases it. Never run `docker login` or
+sends the image to Apervia and releases it. Say that the image is for
+`linux/amd64`. Never run `docker login` or
 `docker push`, and never ask the person for a registry or its password.
 
 If it stops at the timeout, the release goes on: run
