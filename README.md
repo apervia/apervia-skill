@@ -5,8 +5,9 @@ folder of an app and say "put this on Apervia". The skill:
 
 1. finds what kind of app it is, from its files;
 2. changes the app so that it runs on Apervia, and shows each change;
-3. puts the folder in a GitHub repository, if it is not in one, or, for a
-   server, builds it into an image with Docker on your computer;
+3. sends the folder to Apervia, which builds it, after it shows you the
+   list of files and checks that no secret is in it, or, for a server,
+   builds it into an image with Docker on your computer;
 4. creates the app, deploys it, and reads the logs when a step fails;
 5. gives you the address of the app.
 
@@ -20,11 +21,14 @@ password or a secret value: you type each secret into the CLI yourself.
 ## What you need
 
 - [Claude Code](https://claude.com/claude-code).
-- The `apervia` CLI, a version later than 2026.11.18.3, signed in to your
+- The `apervia` CLI, version 2026.11.23.1 or later, signed in to your
   tenant. Run `apervia cli update` to get the newest version. To install it:
   - macOS or Linux: `curl -fsSL https://downloads.apervia.ai/cli/install.sh | sh`
   - Windows, in PowerShell: `irm https://downloads.apervia.ai/cli/install.ps1 | iex`
-- For an app that Apervia builds from source: a GitHub account.
+- For an app that Apervia builds from source (a Vite, Next.js or other
+  static or Node.js web app): nothing more. You need no GitHub account and no
+  Docker. The CLI never sends a `.env` file. If the folder is already in a
+  GitHub repository, you can choose to have Apervia build each push instead.
 - For an app that runs as an image (a server such as Express, or a project
   with its own `Dockerfile`): [Docker](https://docs.docker.com/get-docker/)
   on your computer, with its `docker` command. Colima works with the

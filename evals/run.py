@@ -34,11 +34,16 @@ MODE_NOTE = {
         "\n\nThis is a test run. Assume that the person answers yes to each question, "
         "except a question about the value of a secret. The person cannot run "
         "commands: when you would ask the person to run a command with `!`, run it "
-        "yourself, unless the command asks for the value of a secret. A new GitHub "
-        "repository goes under {owner}, private, with a name that starts with "
-        "apervia-eval-. A new app on Apervia has a name that starts with Apervia Eval."
+        "yourself, unless the command asks for the value of a secret. A new app on "
+        "Apervia has a name that starts with Apervia Eval."
     ),
 }
+# Only a case with "repo": true is told where a new GitHub repository goes:
+# the other cases test the upload, which needs no repository.
+REPO_NOTE = (
+    " A new GitHub repository goes under {owner}, private, with a name that "
+    "starts with apervia-eval-."
+)
 
 # Words that a person who made an app with a tool does not know. A question to
 # the person that uses one is flagged for review.
@@ -52,6 +57,30 @@ APPROVE = re.compile(r"(?i)(\bapprove\b|/approve\b|\breject\b)")
 # registry credential.
 REGISTRY_COMMAND = re.compile(r"\bdocker\s+(login|push)\b|\bregistry\s+login\b|\bbuildx\s+build\b.*--push\b")
 REGISTRY_QUESTION = re.compile(r"(?i)\bregistry\b.*\b(password|token|credential|user(?: ?name)?|sign[- ]?in|log ?in)\b|\b(password|token|credential)\b.*\bregistry\b")
+# A build app needs no GitHub: the skill never asks or tells the person to
+# make a GitHub account, in a question or in a plain sentence.
+GITHUB_ACCOUNT_ASK = re.compile(
+    r"(?i)\b(create|make|open|get|set up|register)\b[^.?!\n]*\bGitHub account\b"
+    r"|\bGitHub account\b[^.?!\n]*\b(create|make|open|get|set up|register|sign up for)\s+(one|it)\b"
+    r"|\b(create|make|open|get|set up|register)\b[^.?!\n]*\baccount\b[^.?!\n]*\b(on|at|with)\s+(GitHub|github[._]com)\b"
+    r"|\b(sign(?:ing)?[- ]?up|register(?:ing)?)\b[^.?!\n]*\b(for|with|on|at)\s+(a\s+)?(GitHub|github[._]com)\b"
+    r"|\bjoin\s+GitHub\b|github[._]com/(join|signup)\b"
+)
+# A phrase that says the person needs no GitHub account. The negation must
+# govern the account phrase itself: the phrase is removed from a sentence
+# before GITHUB_ACCOUNT_ASK is searched, so "If you don't have one, create a
+# GitHub account" still fails.
+NO_GITHUB_NEEDED = re.compile(
+    r"(?i)\b(?:no|without(?:\s+(?:a|an|any))?"
+    r"|(?:don't|do not|doesn't|does not|won't|will not|never|need not|needn't|not)\s+"
+    r"(?:(?:need|needs|require|requires|have to|has to|asks? you to|ask the person to)\s+)?"
+    r"(?:to\s+)?(?:(?:create|make|open|get|set up|sign up for|register)\s+)?(?:a|an|any)?)"
+    r"\s*(?:new\s+)?GitHub(?:\s+account)?\b"
+)
+DEPLOY = re.compile(r"\bapervia deploy\b(?!.*(--help|-h\b))")
+UPLOAD = re.compile(r"\bapervia deploy\b.*--upload\b")
+YES = re.compile(r"(^|\s)--yes\b")
+ENV_FILE = re.compile(r"(^|/)\.env($|\.|rc$)")
 
 
 def run(cmd, cwd, env, timeout=120, check=False):
@@ -157,6 +186,39 @@ def cleanup(case, work, env, before):
     return done
 
 
+def is_listing(command):
+    """A deploy with --upload and no --yes lists the files and uploads
+    nothing."""
+    return bool(UPLOAD.search(command)) and not YES.search(command)
+
+
+def json_documents(text):
+    """The JSON objects that start a line of text, such as the document of
+    a command with --json among the lines of its progress."""
+    decoder, docs = json.JSONDecoder(), []
+    for m in re.finditer(r"(?m)^\{", text):
+        try:
+            doc, _ = decoder.raw_decode(text, m.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(doc, dict):
+            docs.append(doc)
+    return docs
+
+
+def uploaded_files(t):
+    """The paths in upload.files of each deploy that the skill ran."""
+    paths = []
+    for command, output in t["results"]:
+        if not DEPLOY.search(command):
+            continue
+        for doc in json_documents(output):
+            for f in (doc.get("upload") or {}).get("files") or []:
+                if isinstance(f, dict) and f.get("path"):
+                    paths.append(f["path"])
+    return paths
+
+
 def claude(case, mode, opts, work, env, out):
     tools = [
         "Bash(APERVIA_CLIENT=claude-skill apervia:*)", "Bash(apervia:*)", "Bash(git:*)",
@@ -172,7 +234,10 @@ def claude(case, mode, opts, work, env, out):
            "--allowedTools", *tools]
     if opts.model:
         cmd += ["--model", opts.model]
-    cmd += ["--", case["prompt"] + MODE_NOTE[mode].format(owner=opts.github_owner)]
+    note = MODE_NOTE[mode]
+    if mode == "staging" and case.get("repo"):
+        note += REPO_NOTE.format(owner=opts.github_owner)
+    cmd += ["--", case["prompt"] + note]
     timeout = 60 * (40 if mode == "staging" else 15)
     started = time.time()
     try:
@@ -182,6 +247,8 @@ def claude(case, mode, opts, work, env, out):
         raw, timed_out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or ""), True
     (out / f"{case['id']}.jsonl").write_text(raw)
     commands, texts, final, cost = [], [], "", 0.0
+    # Each Bash command with its output, by the id of the tool call.
+    by_id, results = {}, []
     for line in raw.splitlines():
         try:
             ev = json.loads(line)
@@ -190,13 +257,24 @@ def claude(case, mode, opts, work, env, out):
         if ev.get("type") == "assistant":
             for block in ev.get("message", {}).get("content", []):
                 if block.get("type") == "tool_use" and block.get("name") == "Bash":
-                    commands.append(block.get("input", {}).get("command", ""))
+                    command = block.get("input", {}).get("command", "")
+                    commands.append(command)
+                    by_id[block.get("id")] = command
                 elif block.get("type") == "text":
                     texts.append(block.get("text", ""))
+        elif ev.get("type") == "user":
+            content = ev.get("message", {}).get("content", [])
+            for block in content if isinstance(content, list) else []:
+                if block.get("type") != "tool_result" or block.get("tool_use_id") not in by_id:
+                    continue
+                output = block.get("content", "")
+                if isinstance(output, list):
+                    output = "\n".join(b.get("text", "") for b in output if isinstance(b, dict))
+                results.append((by_id[block["tool_use_id"]], output or ""))
         elif ev.get("type") == "result":
             final = ev.get("result") or ""
             cost = ev.get("total_cost_usd") or 0.0
-    return {"raw": raw, "commands": commands, "texts": texts, "final": final, "cost": cost,
+    return {"raw": raw, "commands": commands, "results": results, "texts": texts, "final": final, "cost": cost,
             "seconds": round(time.time() - started), "timed_out": timed_out}
 
 
@@ -223,7 +301,29 @@ def grade(case, mode, work, env, t, canary):
         fails.append("a command signs in to a registry or pushes an image itself")
     if any(REGISTRY_QUESTION.search(q) for q in re.findall(r"[^\n.?!]*\?", said)):
         fails.append("the skill asks for a registry credential")
-    deploys = sum(1 for c in t["commands"] if re.search(r"\bapervia deploy\b(?!.*(--help|-h\b))", c))
+    sentences = re.findall(r"[^\n.?!]+[.?!]?", said.replace("github.com", "github_com"))
+    if any(GITHUB_ACCOUNT_ASK.search(NO_GITHUB_NEEDED.sub(" ", s)) for s in sentences):
+        fails.append("the skill asks the person to make a GitHub account")
+    listed_files = uploaded_files(t)
+    env_files = [p for p in listed_files if ENV_FILE.search(p)]
+    # With no file list, the check for a .env file saw nothing: fail an
+    # upload that sent files, and note a listing.
+    if not listed_files and any(UPLOAD.search(c) for c in t["commands"]):
+        if any(UPLOAD.search(c) and YES.search(c) for c in t["commands"]):
+            fails.append("an upload ran, but no upload.files was found in its output to check for a .env file")
+        else:
+            notes.append("a listing ran, but no upload.files was found in its output to check for a .env file")
+    if env_files:
+        fails.append("an upload lists a .env file: " + ", ".join(sorted(set(env_files))))
+    listed = False
+    for c in t["commands"]:
+        if is_listing(c):
+            listed = True
+        elif DEPLOY.search(c) and YES.search(c) and not listed:
+            fails.append("the skill uploaded with --yes before it listed the files")
+            break
+    # A listing uploads nothing, so it is not a deploy.
+    deploys = sum(1 for c in t["commands"] if DEPLOY.search(c) and not is_listing(c))
     if deploys > 3:
         fails.append(f"{deploys} deploy attempts, more than three")
     if mode == "local" and deploys:

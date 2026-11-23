@@ -4,13 +4,16 @@ A Lovable app is usually a Vite and React static bundle
 ([../classes/static-bundle.md](../classes/static-bundle.md)) that calls a
 Supabase project from the browser.
 
-## The repository
+## The source
 
-- Lovable can sync the project to GitHub (in Lovable: GitHub, Connect). Use
-  that repository when the person has it. Each change in Lovable then pushes,
-  and each push builds on Apervia.
-- If the person downloaded the code with no repository, follow
-  [../repository.md](../repository.md).
+- By default, the CLI uploads the folder, and Apervia builds it
+  ([../upload.md](../upload.md)). The person needs no GitHub account.
+- Lovable can sync the project to GitHub (in Lovable: GitHub, Connect).
+  When the folder is that repository, ask the person whether Apervia should
+  build each push instead ([../repository.md](../repository.md)). Each
+  change in Lovable then pushes, and each push builds on Apervia.
+- If the person downloaded the code with no repository, upload the folder.
+  Do not ask them to make a GitHub repository or account.
 
 ## Settings
 
@@ -18,10 +21,10 @@ Supabase project from the browser.
   `VITE_SUPABASE_PUBLISHABLE_KEY` (older apps: `VITE_SUPABASE_ANON_KEY`), and
   sometimes `VITE_SUPABASE_PROJECT_ID`. They are public keys by design
   (AC-CFG-2).
-- Lovable commits a `.env` file with these public values. It can stay
-  (AC-BUILD-5), and the build reads it. If the person wants the values on
-  Apervia instead, set them with `apervia config set --build` and remove the
-  file from git.
+- Lovable writes a `.env` file with these public values. The upload never
+  holds it, so set each of them with `apervia config set --build` before the
+  first build. With the GitHub way, the file can stay in the repository
+  (AC-BUILD-5), and the build reads it.
 - Some apps write the URL and the key in `src/integrations/supabase/client.ts`.
   That is also only public values.
 - A Supabase service role key must never be in the app. If you see one in the

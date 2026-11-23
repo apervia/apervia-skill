@@ -3,8 +3,10 @@
 ## Bolt
 
 A Bolt app is usually a Vite static bundle, sometimes with Supabase. Treat it
-like [../classes/static-bundle.md](../classes/static-bundle.md). Bolt can
-connect a project to GitHub; use that repository when the person has it.
+like [../classes/static-bundle.md](../classes/static-bundle.md). Upload the folder
+([../upload.md](../upload.md)). Bolt can connect a project to GitHub: when
+the folder is that repository, ask the person whether Apervia should build
+each push instead ([../repository.md](../repository.md)).
 
 ## Replit
 

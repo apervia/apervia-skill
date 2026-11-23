@@ -1,8 +1,16 @@
-# A folder with no GitHub repository
+# Build on each push to GitHub
 
-A build app builds from a GitHub repository. When the folder is not in one,
-help the person to make one before the deploy. Use the first way that
-works:
+A build app needs no GitHub: by default the CLI uploads the folder
+([upload.md](upload.md)). The GitHub way is an option for a person who
+wants Apervia to build the app on each push to GitHub.
+
+Offer it only when the folder is already in a GitHub repository
+(`git remote -v` shows a `github.com` address). Then go to "Then" below.
+
+When the folder is not in one, do not offer GitHub, and never ask the
+person to make a GitHub account. Only when the person asks for GitHub
+themselves, and has an account, help them to make a repository. Use the
+first way that works:
 
 1. **The tool's own GitHub sync.** Lovable, Bolt and others can push the
    project to GitHub. Tell the person where to turn it on, and wait. Then
@@ -61,7 +69,12 @@ file: put new values on Apervia instead.
 
 Run `! APERVIA_CLIENT=claude-skill apervia github connect` (the person runs
 it). The CLI gives Apervia access to the repository on GitHub, in the
-browser, and connects it to the environment.
+browser, and connects it to the environment. The command shows the settings
+and the outside hosts that the backend of the repository uses.
+
+Then deploy with `APERVIA_CLIENT=claude-skill apervia deploy --wait --timeout 9m --json`:
+it builds the head of the connected branch. A change needs a commit and a
+push before the next deploy.
 
 ## When a push fails
 
