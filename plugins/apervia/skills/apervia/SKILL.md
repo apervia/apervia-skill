@@ -81,14 +81,22 @@ Do the steps in order. Tell the person in one line what each step does.
    person to read you the last lines that the install printed, and to open a
    new terminal. Do not change the `PATH` or a shell profile yourself
    (rule 7). Stop until `apervia version` works.
-2. The skill needs version `2026.10.31.1` or later. Compare the four numbers
-   in turn: year, month, day, then the release of that day. If it is older,
+2. The skill needs a version later than `2026.11.18.3`: the first with
+   `apervia doctor` and `apervia deploy --push`. Compare the four numbers in
+   turn: year, month, day, then the release of that day. If it is not later,
    ask the person to run `! apervia cli update`, and run the version again.
 3. Run `APERVIA_CLIENT=claude-skill apervia auth status --json`. If the
    person is not signed in, ask for the address of their tenant (for example
    `acme.apervia.example.com`), and ask them to run
    `! APERVIA_CLIENT=claude-skill apervia auth login <address>`. The CLI shows
    a code and opens a browser.
+4. Run `APERVIA_CLIENT=claude-skill apervia doctor --json`. Keep its
+   `docker` part: `docker.available` says whether Docker runs on this
+   computer, and `docker.amd64` whether it can build a `linux/amd64` image.
+   Step 2 needs it for an image app. Do not talk about Docker to the person
+   for an app of another kind. The command can end with an error when it
+   cannot reach the releases of the CLI; its JSON still holds the `docker`
+   part.
 
 ### 2. Find the kind of app
 
@@ -100,7 +108,7 @@ is the runtime class of the app, from its files. Read the matching file:
 | `static-bundle` | [references/classes/static-bundle.md](references/classes/static-bundle.md) |
 | `nextjs` | [references/classes/nextjs.md](references/classes/nextjs.md) |
 | `tanstack-start-nitro`, `tanstack-start-spa` | [references/classes/tanstack-start.md](references/classes/tanstack-start.md) |
-| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md) |
+| `node-server`, `other-server`, `dockerfile` | [references/classes/image.md](references/classes/image.md). It needs Docker: read it before step 3 |
 | `static-site` | [references/classes/static-site.md](references/classes/static-site.md) |
 | `unknown` | Ask the person where the app is, and run the check on that folder |
 
@@ -132,15 +140,16 @@ feature), ask.
 ### 4. Choose the source
 
 An app on Apervia is built from a GitHub repository (**build**), or runs an
-image that the developer builds (**image**). The choice is fixed when the app
-is created.
+image that Docker builds on this computer (**image**). The choice is fixed
+when the app is created.
 
 - The class file says which source the class needs.
-- An image app needs an image in a registry that the tenant can read, by
-  digest. If the project does not publish one, read
-  [references/classes/image.md](references/classes/image.md) and help the
-  developer. A person who is not a developer cannot run an image app: say so
-  and stop.
+- An image app needs Docker on this computer, and no registry: the CLI
+  builds the image for `linux/amd64` and sends it to Apervia
+  ([references/classes/image.md](references/classes/image.md)). With no
+  Docker (`docker.available` is false in the doctor report of step 1), tell
+  the person in plain words that this app needs Docker, give the install
+  link of the report, and stop.
 - A build app needs a GitHub repository. If the folder is not in one, follow
   [references/repository.md](references/repository.md) first.
 
@@ -174,23 +183,33 @@ For an image app, set the runtime settings and secrets that the app reads.
 
 ### 7. Deploy
 
-Run `APERVIA_CLIENT=claude-skill apervia deploy --wait --timeout 9m --json`
-(add `--image <name>@sha256:<digest>` for an image app). If it stops at the
-timeout, the release goes on: run `APERVIA_CLIENT=claude-skill apervia status
---json` until it is ready or failed.
+For a build app, run
+`APERVIA_CLIENT=claude-skill apervia deploy --wait --timeout 9m --json`.
+
+For an image app, run
+`APERVIA_CLIENT=claude-skill apervia deploy --push --wait --timeout 9m --json`
+in the folder of the app. The CLI builds the `Dockerfile` for `linux/amd64`,
+sends the image to Apervia and releases it. Never run `docker login` or
+`docker push`, and never ask the person for a registry or its password.
+
+If it stops at the timeout, the release goes on: run
+`APERVIA_CLIENT=claude-skill apervia status --json` until it is ready or
+failed.
 
 ### 8. When the release fails
 
 Read [references/failures.md](references/failures.md). Then:
 
-1. Run `APERVIA_CLIENT=claude-skill apervia release show --json`. Its reason
+1. If the push of an image app failed, nothing was released: act on its
+   `code` (see "When the push fails" in that file).
+2. Run `APERVIA_CLIENT=claude-skill apervia release show --json`. Its reason
    tells you where to look.
-2. For a build app whose build failed, run
+3. For a build app whose build failed, run
    `APERVIA_CLIENT=claude-skill apervia build logs --json`.
-3. For an app that starts and stops, run
+4. For an app that starts and stops, run
    `APERVIA_CLIENT=claude-skill apervia logs --previous --tail 200` and then
    `apervia logs --tail 200`.
-4. Fix the cause in the files or the settings, commit and push for a build
+5. Fix the cause in the files or the settings, commit and push for a build
    app, and deploy again.
 
 Stop after three failed deploys. Tell the person in plain words what fails,
