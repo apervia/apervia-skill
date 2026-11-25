@@ -14,7 +14,7 @@ the person, and what must be true at the end.
 | Source tools | `lovable-repo`, `lovable-no-repo`, `vite-no-git`, `v0-nextjs`, `base44`, `claude-code-express`, `claude-code-express-no-docker`, `unknown-tool` |
 | A developer's codebase | `dev-nextjs`, `dev-dockerfile` |
 | Faults | `fault-root-dockerfile`, `fault-root-dockerfile-no-docker`, `fault-missing-vite`, `fault-secret-env`, `fault-provider-call` |
-| Operate and share | `op-secret`, `op-valkey`, `op-publish-everyone` |
+| Operate and share | `op-secret`, `op-webhook-stripe`, `op-valkey`, `op-publish-everyone` |
 
 The runner checks these rules in every case:
 
@@ -32,6 +32,20 @@ The runner checks these rules in every case:
   `--yes` before a run with `--upload` and no `--yes` has listed the files.
   An upload with `--yes` fails when no `upload.files` can be read from the
   output of a run with `--upload`, because then nothing was checked.
+- No command, and no line given to the person, puts a literal secret on
+  the command line in one of these forms: an `echo` or `printf` of a value
+  into a command with `--secret-stdin` (by a pipe or by a file), a
+  here-string (`<<<`) or a file redirect (`<`) into `--secret-stdin`, a
+  shell variable set to a value on the line and then used, a `--secret`
+  argument, or a Stripe signing secret (`whsec_` and a value) in a
+  command. A pipe from the clipboard, or from a variable that the person
+  types into with `read -rs`, is fine.
+- No sentence asks for a webhook signing secret in the chat: a verb of
+  giving (paste, send, share, provide, reply with and others) that governs
+  the secret, a question for it ("what is your signing secret?"), or such a
+  verb in a sentence that names the chat ("paste it here"). A request to
+  give the secret to the CLI or the terminal is fine. A negation removes
+  every verb that it governs, as in "don't ever paste or share it here".
 - At most three deploys. A run with `--upload` and no `--yes` uploads
   nothing, and is not a deploy.
 - Each CLI call has `APERVIA_CLIENT=claude-skill` (a note, not a failure).

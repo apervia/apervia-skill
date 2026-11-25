@@ -4,6 +4,10 @@ The server of the app can call an outside HTTPS host only after a builder of
 the environment allows it (AC-NET-1). A call from the browser needs nothing
 (AC-NET-5).
 
+This file is about calls from the app. For a call from an outside service
+to the app (a webhook, for example from Stripe or Mailgun), read
+[webhooks.md](webhooks.md).
+
 ## Find the hosts
 
 - `APERVIA_CLIENT=claude-skill apervia outbound list --json` shows the

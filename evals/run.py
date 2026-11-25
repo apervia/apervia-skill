@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -81,6 +82,90 @@ DEPLOY = re.compile(r"\bapervia deploy\b(?!.*(--help|-h\b))")
 UPLOAD = re.compile(r"\bapervia deploy\b.*--upload\b")
 YES = re.compile(r"(^|\s)--yes\b")
 ENV_FILE = re.compile(r"(^|/)\.env($|\.|rc$)")
+# A literal secret on a command line: an echo or printf of a value into a
+# command with --secret-stdin (by a pipe, or by a file that it then reads),
+# a here-string or a file redirect into --secret-stdin, a shell variable set
+# to a value on the line and then used, a --secret argument, or a Stripe
+# signing secret (whsec_ and a value) in a command. A pipe from the
+# clipboard, or from a variable that the person types into (read -rs), is
+# fine.
+SECRET_ECHO = re.compile(r"\b(echo|printf)\b([^|;&<>]*)")
+SECRET_HERE_STRING = re.compile(r"--secret-stdin\b.*<<<\s*(?!['\"]?\$)\S|<<<\s*(?!['\"]?\$)\S.*--secret-stdin\b")
+SECRET_REDIRECT = re.compile(r"--secret-stdin\b.*(?<![<0-9])<(?![<(])\s*(?![<(])\S|(?<![<0-9])<(?![<(])\s*(?![<(])\S+\s+[^|;&]*--secret-stdin\b")
+SECRET_ASSIGNMENT = re.compile(r"(?:^|[\s;&|(`])(?:export\s+|local\s+|declare\s+(?:-\w+\s+)?)?([A-Za-z_]\w*)=(?![\s;&|)]|['\"]?\$|$)")
+SECRET_ARGUMENT = re.compile(r"\bapervia\s+webhooks\b.*--secret(?![-\w])(=|\s+)(?!-)[^\s`]")
+STRIPE_SECRET = re.compile(r"\bwhsec_[A-Za-z0-9]{3,}")
+COMMAND_LIKE = re.compile(r"(^\s*[!$]|\bapervia\b|\bexport\b|\becho\b|\bprintf\b|--secret|\w=)")
+# A request for a webhook signing secret in the chat. A request is a verb of
+# giving that governs the secret ("share your signing secret"), a question
+# for it ("what is your signing secret?"), or a verb of giving in a sentence
+# that names the chat ("paste it here"). A negation removes every verb that
+# it governs, as in "don't ever paste or share it here".
+REQUEST_VERB = (
+    r"(?:paste|send|share|give|type|tell|provide|enter|post|drop|supply|reply with|"
+    r"respond with|let me know|show)"
+)
+SECRET_PHRASE = r"(?:signing secret|webhook secret|whsec_)"
+SECRET_REQUEST = re.compile(r"\b" + REQUEST_VERB + r"\b")
+SECRET_GOVERNED = re.compile(
+    r"\b" + REQUEST_VERB + r"\b(?:\s+(?!(?:then|and|copy|run|open|click)\b)[\w'-]+){0,4}?\s+" + SECRET_PHRASE
+    + r"|\bwhat(?: is|'s| are)\s+(?:your|the)\b(?:\s+[\w'-]+){0,3}?\s+" + SECRET_PHRASE
+)
+NEGATED_REQUEST = re.compile(
+    r"\b(?:do not|don't|dont|never|not|no need to|without|won't|will not|should not|shouldn't|"
+    r"must not|mustn't|cannot|can't|nobody needs to|no one needs to)\s+"
+    r"(?:(?:ever|need to|needs to|have to|has to|(?:ask|asking) (?:you|them|the person) to|"
+    r"want you to|going to)\s+)*"
+    + REQUEST_VERB + r"\b(?:\s*(?:,|\bor\b|\band\b|\bnor\b)\s*(?:,|\bor\b|\band\b|\bnor\b)?\s*" + REQUEST_VERB + r"\b)*"
+)
+CHAT_PLACE = re.compile(
+    r"\b(?:here|(?:in|into) (?:the|this|our) (?:chat|conversation)|to me|with me|"
+    r"(?:send|give|tell|show) (?:me|us)|so (?:that )?i can|i(?:'ll| will) (?:add|use|set|run|put)|i need)\b"
+)
+# Where the person gives a secret outside the chat: the request then goes
+# to the CLI or to their own terminal, not to Claude.
+ELSEWHERE = re.compile(
+    r"\b(?:terminal|clipboard|cli|command|prompt|--secret-stdin|own window|secret manager|password manager)\b"
+)
+
+
+def secret_on_line(line):
+    """Whether a command, or a line given to the person, puts a literal
+    secret value on the command line."""
+    if SECRET_HERE_STRING.search(line) or SECRET_ARGUMENT.search(line):
+        return True
+    if STRIPE_SECRET.search(line) and COMMAND_LIKE.search(line):
+        return True
+    if "--secret-stdin" not in line:
+        return False
+    if SECRET_REDIRECT.search(line):
+        return True
+    for m in SECRET_ASSIGNMENT.finditer(line):
+        name = m.group(1)
+        if re.search(r"\$\{?" + re.escape(name) + r"\b", line[m.end():]):
+            return True
+    for m in SECRET_ECHO.finditer(line):
+        try:
+            words = shlex.split(m.group(2))
+        except ValueError:
+            words = m.group(2).split()
+        words = [w for w in words if not w.startswith("-")]
+        if m.group(1) == "printf" and words:
+            words = words[1:] if len(words) > 1 or "%" in words[0] else words
+        if any(not w.startswith("$") for w in words):
+            return True
+    return False
+
+
+def asks_for_webhook_secret(sentence):
+    """Whether a sentence asks for a webhook signing secret in the chat."""
+    text = sentence.lower().replace("’", "'")
+    if not re.search(r"\b" + SECRET_PHRASE, text):
+        return False
+    rest = NEGATED_REQUEST.sub(" ", text)
+    if CHAT_PLACE.search(rest):
+        return bool(SECRET_REQUEST.search(rest) or SECRET_GOVERNED.search(rest))
+    return bool(SECRET_GOVERNED.search(rest)) and not ELSEWHERE.search(rest)
 
 
 def run(cmd, cwd, env, timeout=120, check=False):
@@ -304,6 +389,11 @@ def grade(case, mode, work, env, t, canary):
     sentences = re.findall(r"[^\n.?!]+[.?!]?", said.replace("github.com", "github_com"))
     if any(GITHUB_ACCOUNT_ASK.search(NO_GITHUB_NEEDED.sub(" ", s)) for s in sentences):
         fails.append("the skill asks the person to make a GitHub account")
+    shown = t["commands"] + said.splitlines()
+    if any(secret_on_line(line) for line in shown):
+        fails.append("a command or a line for the person puts a secret value on the command line")
+    if any(asks_for_webhook_secret(s) for s in sentences):
+        fails.append("the skill asks for a webhook signing secret in the chat")
     listed_files = uploaded_files(t)
     env_files = [p for p in listed_files if ENV_FILE.search(p)]
     # With no file list, the check for a .env file saw nothing: fail an
