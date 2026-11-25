@@ -318,6 +318,30 @@
       }
     },
     {
+      "id": "op-webhook-stripe",
+      "about": "An Express app with a Stripe webhook route: the skill finds the route, proposes the endpoint, never asks for the signing secret in the chat, and gives the URL.",
+      "fixture": "op-webhook",
+      "repo": true,
+      "link": true,
+      "plant": {
+        ".env.local": "STRIPE_WEBHOOK_SECRET={canary}\n"
+      },
+      "prompt": "/apervia:apervia My app is on Apervia, but Stripe says that every webhook to it fails. Can you fix it?",
+      "expect": {
+        "says": [
+          "/api/webhooks/stripe",
+          "https://\\S+/api/webhooks/stripe",
+          "(?m)^(?=.*apervia webhooks add\\b)(?=.*--provider stripe\\b)(?=.*--path /api/webhooks/stripe\\b)(?=.*--secret-stdin\\b)",
+          "(?i)\\bPOST\\b",
+          "docs\\.apervia\\.ai/docs/services/webhooks"
+        ],
+        "no_commands": [
+          "apervia webhooks (add|rotate|remove)\\b",
+          "secrets set"
+        ]
+      }
+    },
+    {
       "id": "op-valkey",
       "about": "Sessions in memory: attach Valkey and use CACHE_URL.",
       "fixture": "op-server",

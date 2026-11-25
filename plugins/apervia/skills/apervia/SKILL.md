@@ -1,6 +1,6 @@
 ---
 name: apervia
-description: Deploy an app to Apervia and operate it with the apervia CLI. Use when the person asks to put an app on Apervia, deploy or release it, see why a release failed, or read its logs. Works for an app made with Lovable, v0, base44, Claude Code, Cursor, Bolt, Replit or any other tool, and for a developer's own codebase.
+description: Deploy an app to Apervia and operate it with the apervia CLI. Use when the person asks to put an app on Apervia, deploy or release it, see why a release failed, read its logs, or let a service such as Stripe, Mailgun or Slack send webhooks to the app. Works for an app made with Lovable, v0, base44, Claude Code, Cursor, Bolt, Replit or any other tool, and for a developer's own codebase.
 ---
 
 # Apervia
@@ -22,7 +22,10 @@ this skill.
    API key that is not public, a private key or a token. Do not read one
    aloud from a file, do not put one in a command, a file, a commit or a
    message. To set a secret, the person types the value into the CLI prompt
-   (see [references/configuration.md](references/configuration.md)).
+   (see [references/configuration.md](references/configuration.md)). A
+   webhook signing secret goes from the provider to the CLI through a pipe,
+   and never through the chat (see
+   [references/webhooks.md](references/webhooks.md)).
 2. **Never approve a request, and never ask somebody to approve for the
    person.** A publish or a new builder waits for an approver in the console.
    Give the console link that the CLI prints. The CLI cannot approve.
@@ -146,6 +149,13 @@ the person in each case.
 Find the backend that the browser calls, for example a Supabase project. A
 backend that the browser calls needs no outbound host. Its settings are build
 variables (see [references/configuration.md](references/configuration.md)).
+
+Look for webhook routes: a route that Stripe, Mailgun, Slack or another
+service calls, such as `/api/webhooks/stripe`, or a call such as
+`stripe.webhooks.constructEvent`. [references/webhooks.md](references/webhooks.md)
+says how to find them. On Apervia such a route needs a webhook endpoint,
+because every other request needs a sign-in. Tell the person now, in one
+sentence, and set up the endpoint after step 9.
 
 ### 3. Fix what the check finds
 
@@ -277,16 +287,20 @@ the host of the environment. Tell them that a new app is private: only its
 builders can open it. To let other people use it, read
 [references/sharing.md](references/sharing.md).
 
+If step 2 found a webhook route, propose its webhook endpoint now, and ask.
+Follow [references/webhooks.md](references/webhooks.md).
+
 ## After the first release
 
-For a setting, a secret, an add-on, an outside host, a data import or
-sharing, read the matching reference file:
+For a setting, a secret, an add-on, an outside host, a webhook, a data
+import or sharing, read the matching reference file:
 
 | The person wants | Read |
 | --- | --- |
 | A setting or a secret | [references/configuration.md](references/configuration.md) |
 | A database, a cache, file storage, email or AI | [references/addons.md](references/addons.md) |
 | The app to call an outside API | [references/outbound.md](references/outbound.md) |
+| A service such as Stripe, Mailgun or Slack to call the app (a webhook) | [references/webhooks.md](references/webhooks.md) |
 | The data of a Lovable app | [references/import.md](references/import.md) |
 | Other people to use the app, or to help build it | [references/sharing.md](references/sharing.md) |
 | To see what the app does | `apervia logs`, `apervia status` |

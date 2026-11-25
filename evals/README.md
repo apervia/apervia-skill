@@ -14,7 +14,7 @@ the person, and what must be true at the end.
 | Source tools | `lovable-repo`, `lovable-no-repo`, `vite-no-git`, `v0-nextjs`, `base44`, `claude-code-express`, `claude-code-express-no-docker`, `unknown-tool` |
 | A developer's codebase | `dev-nextjs`, `dev-dockerfile` |
 | Faults | `fault-root-dockerfile`, `fault-root-dockerfile-no-docker`, `fault-missing-vite`, `fault-secret-env`, `fault-provider-call` |
-| Operate and share | `op-secret`, `op-valkey`, `op-publish-everyone` |
+| Operate and share | `op-secret`, `op-webhook-stripe`, `op-valkey`, `op-publish-everyone` |
 
 The runner checks these rules in every case:
 
@@ -32,6 +32,10 @@ The runner checks these rules in every case:
   `--yes` before a run with `--upload` and no `--yes` has listed the files.
   An upload with `--yes` fails when no `upload.files` can be read from the
   output of a run with `--upload`, because then nothing was checked.
+- No command, and no line given to the person, pipes a literal value into
+  `--secret-stdin`. A pipe from the clipboard or a shell variable is fine.
+- No sentence asks the person to paste or send a webhook signing secret in
+  the chat.
 - At most three deploys. A run with `--upload` and no `--yes` uploads
   nothing, and is not a deploy.
 - Each CLI call has `APERVIA_CLIENT=claude-skill` (a note, not a failure).

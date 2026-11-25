@@ -12,11 +12,15 @@ folder of an app and say "put this on Apervia". The skill:
 5. gives you the address of the app.
 
 After the first release, it sets settings and secrets, adds a database, a
-cache, file storage, email or AI, allows outside hosts, imports the data of a
-Lovable app, and shares the app with your team.
+cache, file storage, email or AI, allows outside hosts, sets up a webhook
+endpoint for Stripe, Mailgun, Slack or another service, imports the data of
+a Lovable app, and shares the app with your team.
 
 The skill does all of this with the `apervia` CLI. It never sees your
-password or a secret value: you type each secret into the CLI yourself.
+password or a secret value: you type each secret into the CLI yourself, and
+a webhook signing secret goes from your clipboard to the CLI.
+
+[CHANGELOG.md](CHANGELOG.md) lists the changes of each version.
 
 ## What you need
 
@@ -25,6 +29,7 @@ password or a secret value: you type each secret into the CLI yourself.
   tenant. Run `apervia cli update` to get the newest version. To install it:
   - macOS or Linux: `curl -fsSL https://downloads.apervia.ai/cli/install.sh | sh`
   - Windows, in PowerShell: `irm https://downloads.apervia.ai/cli/install.ps1 | iex`
+- To set up a webhook endpoint: a CLI with the `apervia webhooks` command.
 - For an app that Apervia builds from source (a Vite, Next.js or other
   static or Node.js web app): nothing more. You need no GitHub account and no
   Docker. The CLI never sends a `.env` file. If the folder is already in a
@@ -60,7 +65,7 @@ In the folder of an app:
 ```
 
 Or say what you want, for example "deploy this to Apervia", "why did the
-release fail?", "add a cache", "let the finance team use it".
+release fail?", "add a cache", "Stripe webhooks fail", "let the finance team use it".
 
 The skill asks before each change that deletes something, publishes the app
 or adds a builder. A publish or a new builder waits for an approver in the
