@@ -13,8 +13,10 @@ The versions of the `apervia` plugin. The version is in
   chat, and the skill never repeats a secret that the platform generates.
   The skill gives the full URL, says where it goes in the provider, and
   explains what the app gets. See `references/webhooks.md`.
-- A new eval case, `op-webhook-stripe`, and a rule for every case: no command
-  pipes a literal value into `--secret-stdin`.
+- A new eval case, `op-webhook-stripe`, and two rules for every case: no
+  command puts a literal secret on the command line (an `echo`, `printf` or
+  here-string of a value into `--secret-stdin`, or a `--secret` argument),
+  and no sentence asks for a webhook signing secret in the chat.
 
 ## 0.4.0
 

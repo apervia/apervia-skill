@@ -32,10 +32,13 @@ The runner checks these rules in every case:
   `--yes` before a run with `--upload` and no `--yes` has listed the files.
   An upload with `--yes` fails when no `upload.files` can be read from the
   output of a run with `--upload`, because then nothing was checked.
-- No command, and no line given to the person, pipes a literal value into
-  `--secret-stdin`. A pipe from the clipboard or a shell variable is fine.
+- No command, and no line given to the person, puts a literal secret on
+  the command line: an `echo` or `printf` of a value piped into
+  `--secret-stdin`, a here-string (`<<<`) of a value, or a `--secret`
+  argument. A pipe from the clipboard or a shell variable is fine.
 - No sentence asks the person to paste or send a webhook signing secret in
-  the chat.
+  the chat. A negation counts only when it governs the request, as in
+  "don't paste it here".
 - At most three deploys. A run with `--upload` and no `--yes` uploads
   nothing, and is not a deploy.
 - Each CLI call has `APERVIA_CLIENT=claude-skill` (a note, not a failure).

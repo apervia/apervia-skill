@@ -54,7 +54,7 @@ calls is not a webhook. Signs of a webhook route:
 This search prints file names only:
 
 ```sh
-grep -rlE "webhooks?\b|inbound-email|constructEvent|@slack/bolt|validateRequest|@octokit/webhooks|svix|standardwebhooks|Stripe-Signature|X-Slack-Signature|X-Twilio-Signature|X-Hub-Signature|X-Shopify-Hmac|X-HubSpot-Signature" --include=*.{js,jsx,ts,tsx,mjs,cjs,py,go,rb,php} . 2>/dev/null | grep -v node_modules
+grep -rlE "webhooks?\b|inbound-email|constructEvent|@slack/bolt|validateRequest|@octokit/webhooks|svix|standardwebhooks|Stripe-Signature|X-Slack-Signature|X-Twilio-Signature|X-Hub-Signature|X-Shopify-Hmac|X-HubSpot-Signature" --include=*.{js,jsx,ts,tsx,mjs,cjs,py,go,rb,php} --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist --exclude-dir=build --exclude-dir=.git . 2>/dev/null
 ```
 
 Then read each file, and find the exact path and the HTTP method of the
@@ -87,10 +87,11 @@ Propose one endpoint for each route, and say what each part is:
   `mailgun`, `slack`). With a preset, the platform checks the provider's
   signature with the provider's signing secret.
 - **The path**: the exact path of the route, for example
-  `/api/webhooks/stripe`. The path starts with `/`, has no `/` at the end,
-  has only letters, digits, `-`, `.`, `_` and `~`, and does not start with
-  `/_apervia/` or `/supabase/`. A route with a variable part (for example
-  `/api/webhooks/[provider]`) needs one endpoint for each real path.
+  `/api/webhooks/stripe`. The path starts with `/` and has no `/` at the
+  end. Between the slashes, each part has only letters, digits, `-`, `.`,
+  `_` and `~`. The path does not start with `/_apervia/` or `/supabase/`.
+  A route with a variable part (for example `/api/webhooks/[provider]`)
+  needs one endpoint for each real path.
 - **The method**: `POST` unless the route takes another one.
 
 Then ask: "Shall I set this up?" Go on only after a "yes".
