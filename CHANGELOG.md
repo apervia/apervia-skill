@@ -14,9 +14,10 @@ The versions of the `apervia` plugin. The version is in
   The skill gives the full URL, says where it goes in the provider, and
   explains what the app gets. See `references/webhooks.md`.
 - A new eval case, `op-webhook-stripe`, and two rules for every case: no
-  command puts a literal secret on the command line (an `echo`, `printf` or
-  here-string of a value into `--secret-stdin`, or a `--secret` argument),
-  and no sentence asks for a webhook signing secret in the chat.
+  command puts a literal secret on the command line (an `echo`, `printf`,
+  here-string, file redirect or shell variable of a value into
+  `--secret-stdin`, a `--secret` argument, or a `whsec_` value), and no
+  sentence asks for a webhook signing secret in the chat.
 
 ## 0.4.0
 
